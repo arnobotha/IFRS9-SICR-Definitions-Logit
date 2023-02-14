@@ -1,0 +1,13 @@
+Defining and comparing SICR-events for classifying impaired loans under IFRS 9
+[![DOI](https://zenodo.org/badge/249478914.svg)](https://zenodo.org/badge/latestdoi/249478914)
+
+The IFRS 9 accounting standard requires the prediction of credit deterioration in financial instruments, i.e., significant increases in credit risk (SICR).  However, the definition of such a SICR-event is inherently ambiguous, given its reliance on comparing two subsequent estimates of default risk against some arbitrary threshold. We examine the shortcomings of this approach and propose an alternative framework for generating SICR-definitions, based on three parameters: delinquency, stickiness, and the outcome period. Having varied these parameters, we obtain 27 unique SICR-definitions and fit logistic regression models accordingly using rich South African mortgage data; itself containing various macroeconomic and obligor-specific input variables. This new SICR-modelling approach is demonstrated by analysing the resulting portfolio-level SICR-rates (of each SICR-definition) on their stability over time and their responsiveness to economic downturns. At the account-level, we compare both the accuracy and flexibility of the SICR-predictions across all SICR-definitions, and discover several interesting trends during this process. These trends form a rudimentary expert system for selecting the three parameters optimally, as demonstrated in our recommendations for defining SICR-events. In summary, our work can guide the formulation, testing, and modelling of any SICR-definition, thereby promoting the timeous recognition of credit losses; the main imperative of IFRS 9.
+
+## Structure
+This R-codebase can be run sequentially using the file numbering itself as a structure. Delinquency measures are algorithmically defined in **DelinqM.R** as data-driven functions, which may be valuable to the practitioner outside of the study's current scope.
+
+## Data
+This R-codebase assumes that monthly loan performance data are available. Naturally, the data itself can't be made publically available due to non-disclosure agreements signed with the particular bank in question. However, the structure and type of data that is required for reproducing this study, is sufficiently described in the commentary within the scripts. This should enable the practitioner to extract and prepare data accordingly.
+
+## Copyright
+All code and scripts are hereby released under an [MIT](https://opensource.org/licenses/MIT) license. Similarly, all graphs produced by relevant scripts as well as those published here, are hereby released under a Creative Commons Attribution ([CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)) licence.
