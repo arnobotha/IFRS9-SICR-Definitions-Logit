@@ -36,6 +36,9 @@ SICR_label <- "1a(i)"
 # - Tuning sample size in observations
 tuneSize <- 45000
 
+# --- Confidence interval parameters
+confLevel <- 0.95
+
 
 
 # ----- 1. Sample creation from prepared SICR-dataset
@@ -80,11 +83,18 @@ port.aggr <- datSICR_graph[SICR_def==0, list(EventRate = sum(SICR_target, na.rm=
 # - Aesthetics engineering
 port.aggr[, Facet_label := paste0("SICR-definition ", SICR_label)]
 
+# - calculate TTC event rate and confidence interval for one sample, dichotomous outcome (population proportion)
+mean_EventRate <- port.aggr[Sample == "b_Train", mean(EventRate, na.rm=T)]
+stdError_EventRate <- port.aggr[Sample == "b_Train", sd(EventRate, na.rm=T)] / port.aggr[Sample == "b_Train", .N]
+margin_EventRate <- qnorm(1-(1-confLevel)/2) * stdError_EventRate
+cat("\nMean event rate with 95% confidence intervals in training sample: ", sprintf("%.2f", mean_EventRate*100) , "% +-", sprintf("%.3f", margin_EventRate*100), "%")
+
 # - Calculate MAE over time by sample
 port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, Sample), names_from = c(Sample), values_from = c(EventRate))
 (diag.samplingRep.train <- mean(abs(port.aggr2$a_Full - port.aggr2$b_Train)) * 100)
 (diag.samplingRep.valid <- mean(abs(port.aggr2$a_Full - port.aggr2$c_Validation)) * 100)
 (diag.samplingRep.tune <- mean(abs(port.aggr2$a_Full - port.aggr2$d_Tune), na.rm=T) * 100)
+(diag.samplingRep.trainValid <- mean(abs(port.aggr2$b_Train - port.aggr2$c_Validation)) * 100)
 ### RESULTS: Sample-size dependent
 # 1m-sample:   Train: 0.14%, Validation: 0.22%; Tune  (9k < Dec-2017): 1.19%
 # 500k-sample: Train: 0.20%; Validation: 0.31%; Tune  (9k < Dec-2017): 1.16%
@@ -98,16 +108,16 @@ port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, Sample), names_from = 
 # - Graphing parameters
 chosenFont <- "Cambria"; dpi <- 170
 col.v <- brewer.pal(9, "Set1")[c(1,5,2,4)]; size.v <- c(0.5,0.3,0.3,0.3)
-label.v <- c("a_Full"=expression("Full set "*italic(D)),
-             "b_Train"=bquote("Training set "*italic(D)[italic(T)]~"("*.(round(train_prop*smp_size/1000))*"k)"),
-             "c_Validation"=bquote("Validation set "*italic(D)[italic(V)]~"("*.(round((1-train_prop)*smp_size/1000))*"k)"),
-             "d_Tune"= bquote("Tuning set "*italic(D)[italic(H)]~"("*.(round(tuneSize/1000))*"k)" ))
+label.v <- c("a_Full"=expression(italic(A)[t]*": Full set "*italic(D)),
+             "b_Train"=bquote(italic(B)[t]*": Training set "*italic(D)[italic(T)]~"("*.(round(train_prop*smp_size/1000))*"k)"),
+             "c_Validation"=bquote(italic(C)[t]*": Validation set "*italic(D)[italic(V)]~"("*.(round((1-train_prop)*smp_size/1000))*"k)"),
+             "d_Tune"= bquote(italic(D)[t]*": Tuning set "*italic(D)[italic(H)]~"("*.(round(tuneSize/1000))*"k)" ))
 port.sel <- port.aggr #
 
 
 # - Create graph 1 (all sets)
 (g2 <- ggplot(port.sel, aes(x=Date, y=EventRate, group=Sample)) + theme_minimal() + 
-    labs(x="Reporting date (months)", y="Conditional SICR-rate (%) given Stage 1") + 
+    labs(x="Reporting date (months)", y=bquote("Conditional SICR-rate (%) given Stage 1 and sample "*italic(bar(D)))) + 
     theme(text=element_text(family=chosenFont),legend.position = "bottom",
           axis.text.x=element_text(angle=90), #legend.text=element_text(family=chosenFont), 
           strip.background=element_rect(fill="snow2", colour="snow2"),
@@ -116,20 +126,29 @@ port.sel <- port.aggr #
     geom_line(aes(colour=Sample, linetype=Sample, size=Sample)) + 
     geom_point(aes(colour=Sample, shape=Sample), size=1) + 
     #annotations
+    # annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)],
+    #          label=paste0("'MAE between '*italic(D)*' and '*italic(D)[italic(T)]*': ", sprintf("%.2f", diag.samplingRep.train),"%'"),
+    #          family=chosenFont, size=3, parse=T) + 
+    annotate("text", x=as.Date("2013-02-28"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)]*1.1, size=3, family=chosenFont,
+             label=paste0("'TTC-mean '*E(italic(B[t]))*': ", sprintf("%.3f", mean_EventRate*100), "% ± ", 
+                          sprintf("%.3f", margin_EventRate*100),"%'"), parse=T) +     
     annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)],
-             label=paste0("'MAE between '*italic(D)*' and '*italic(D)[italic(T)]*': ", sprintf("%.2f", diag.samplingRep.train),"%'"),
+             label=paste0("'MAE between '*italic(B)[t]*' and '*italic(C)[t]*': ", sprintf("%.3f", diag.samplingRep.trainValid),"%'"),
              family=chosenFont, size=3, parse=T) + 
     annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)]*0.95,
-             label=paste0("'MAE between '*italic(D)*' and '*italic(D)[italic(V)]*': ", sprintf("%.2f", diag.samplingRep.valid),"%'"),
+             label=paste0("'MAE between '*italic(B)[t]*' and '*italic(A)[t]*': ", sprintf("%.3f", diag.samplingRep.train),"%'"),
              family=chosenFont, size=3, parse=T) +     
     annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)]*0.9,
-             label=paste0("'MAE between '*italic(D)*' and '*italic(D)[italic(H)]*': ", sprintf("%.2f", diag.samplingRep.tune),"%'"),
+             label=paste0("'MAE between '*italic(C)[t]*' and '*italic(A)[t]*': ", sprintf("%.3f", diag.samplingRep.valid),"%'"),
+             family=chosenFont, size=3, parse=T) +      
+    annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)]*0.85,
+             label=paste0("'MAE between '*italic(D)[t]*' and '*italic(A)[t]*': ", sprintf("%.3f", diag.samplingRep.tune),"%'"),
              family=chosenFont, size=3, parse=T) +      
     # facets & scale options
     facet_grid(Facet_label ~ .) + 
-    scale_colour_manual(name="Sample", values=col.v, labels=label.v) + 
-    scale_size_manual(name="Sample", values=size.v, labels=label.v) + 
-    scale_shape_discrete(name="Sample", labels=label.v) + scale_linetype_discrete(name="Sample", labels=label.v) + 
+    scale_colour_manual(name=bquote("Sample "*italic(bar(D))), values=col.v, labels=label.v) + 
+    scale_size_manual(name=bquote("Sample "*italic(bar(D))), values=size.v, labels=label.v) + 
+    scale_shape_discrete(name=bquote("Sample "*italic(bar(D))), labels=label.v) + scale_linetype_discrete(name=bquote("Sample "*italic(bar(D))), labels=label.v) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y"))
 
