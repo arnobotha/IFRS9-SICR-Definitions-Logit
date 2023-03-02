@@ -1,11 +1,14 @@
 # ================================= DELINQUENCY MEASURES ================================
 # Function definitions of various delinquency measures
 # ---------------------------------------------------------------------------------------
-# SCRIPT AUTHOR(S): Arno Botha
+# SCRIPT AUTHOR(S): Dr Arno Botha
 # VERSION: 1.4 (Aug-2021)
 # DESCRIPTION: 
 # This script contains function definitions for constructing the g_1, g_2, and g_3 
 # delinquency measures, as well as k-based curing measurement
+# See Botha, A., Beyers, C., De Villiers, P. (2021). Simulation-based optimisation of 
+#   the timing of loan recovery across different portfolios. Expert Systems with Applications.
+#   https://doi.org/10.1016/j.eswa.2021.114878
 # =======================================================================================
 
  
