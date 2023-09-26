@@ -26,7 +26,7 @@ require(ETLUtils)
 require(ffbase)
 require(ff)
 require(writexl)
-require(arrow)
+#require(arrow)
 tempPath <- "C:/TempData"; options("fftempdir"=tempPath)
 
 # - for data wrangling
@@ -52,7 +52,7 @@ require(gridExtra)
 
 #for modelling
 require(car)
-require(prediction)
+#require(prediction)
 require(MASS) # for stepAIC() for stepwise regression
 require(e1071) # for SVM-technique
 require(mlr) # for parallelized SMV-technique and associated tuning tools
@@ -72,29 +72,53 @@ require(fastshap)
 # - general R options
 options(scipen=999) # Suppress showing scientific notation
 
-# - To help safeguard against memory overruns during data importing
-memory.limit(180000)
-
 # - Parameters used in calculating delinquency measures
 sc.Thres <- 0.9; # repayment ratio - g1
 d <- 3 # default threshold for g0/g1-measures of delinquency (payments in arrears)
 k <- 6 # Probation period
 
-# - Custom path where R-scripts are saved
-path_cust <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic SICR/Colab/"
 
-# - Common path for storing important R-objects as back-up
-genObjPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic SICR/Objects/"
-
-# - Common path for saving important analytics (e.g., sampling)
-genFigPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic SICR/Figures/"
-# genFigPath <- "C:/TempData"
+# -- Path variables | General
 
 # - Common path for saving big data objects
 genPath <- "C:/Data/Dynamic-SICR_Data/"
 
 # - Common path for importing raw data
 genRawPath <- "C:/Data/"
+
+
+# -- Path variables | User-dependent
+
+if (Sys.getenv("USERNAME") == "WRQ") {
+  # - Custom path where R-scripts are saved
+  path_cust <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Scripts/"
+  
+  # - Common path for storing important R-objects as back-up
+  genObjPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Objects/"
+  
+  # - Common path for saving important analytics (e.g., sampling)
+  genFigPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Figures/"
+  
+} else if (Sys.getenv("USERNAME") == "Arno Botha") {
+  # - Custom path where R-scripts are saved
+  
+  path_cust <- "E:/WorkLife/Analytix/ResearchDynamic-SICR/Scripts/"
+  
+  # - Common path for storing important R-objects as back-up
+  genObjPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/Objects/"
+  
+  # - Common path for saving important analytics (e.g., sampling)
+  genFigPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/Figures/"
+  
+  # - Common path for saving big data objects
+  genPath <- "E:/DataDump/FNB SLC/Dynamic-SICR_Data/"
+  
+  # - Common path for importing raw data
+  genRawPath <- "E:/DataDump/FNB SLC/"
+  
+} else {
+  stop("User-specific paths not set for current user: ", Sys.getenv("USERNAME"), ". Please fix in Setup script (0.Setup.R) before continuing")
+}
 
 
 

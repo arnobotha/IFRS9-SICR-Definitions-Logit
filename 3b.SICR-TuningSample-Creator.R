@@ -26,12 +26,12 @@
 # ----- 0. Setup
 
 # - Load all custom functions defined in a separate R-script
-p.k <- 3
-p.s <- 1
+p.k <- 6
+p.s <- 2
 p.d <- 1
 
 # - Define SICR-definition label
-SICR_label <- "1a(i)"
+SICR_label <- "1b(ii)"
 
 # - Tuning sample size in observations
 tuneSize <- 45000
@@ -47,7 +47,7 @@ confLevel <- 0.95
 if (!exists('datSICR')) unpack.ffdf(paste0(genPath,"datSICR_", SICR_label), tempPath)
 
 # - Downsample data into a fixed subsample before implementing resampling scheme
-smp_size <- 250000; smp_percentage <- smp_size/nrow(datSICR)
+smp_size <- 1500000; smp_percentage <- smp_size/nrow(datSICR)
 set.seed(1,kind="Mersenne-Twister")
 datSICR_smp <- datSICR %>% group_by(SICR_target, Date) %>% slice_sample(prop=smp_percentage) %>% as.data.table()
 
@@ -76,6 +76,7 @@ datSICR_graph[, SICR_target := as.numeric(levels(SICR_target))[SICR_target]]
 
 # - Aggregate to monthly level and observe up to given point
 SICR_StartDte <- min(datSICR$Date, na.rm=T)
+if (p.s>1 & p.k>3) { SICR_StartDte <- SICR_StartDte + month(1)} # slight visual adjustment
 SICR_EndDte <- max(datSICR$Date, na.rm=T)
 port.aggr <- datSICR_graph[SICR_def==0, list(EventRate = sum(SICR_target, na.rm=T)/.N, AtRisk = .N),
                            by=list(Sample, Date)][Date >= SICR_StartDte & Date <= SICR_EndDte,] %>% setkey(Sample,Date)
@@ -85,18 +86,19 @@ port.aggr[, Facet_label := paste0("SICR-definition ", SICR_label)]
 
 # - calculate TTC event rate and confidence interval for one sample, dichotomous outcome (population proportion)
 mean_EventRate <- port.aggr[Sample == "b_Train", mean(EventRate, na.rm=T)]
-stdError_EventRate <- port.aggr[Sample == "b_Train", sd(EventRate, na.rm=T)] / port.aggr[Sample == "b_Train", .N]
+stdError_EventRate <- port.aggr[Sample == "b_Train", sd(EventRate, na.rm=T)] / sqrt(port.aggr[Sample == "b_Train", .N])
 margin_EventRate <- qnorm(1-(1-confLevel)/2) * stdError_EventRate
 cat("\nMean event rate with 95% confidence intervals in training sample: ", sprintf("%.2f", mean_EventRate*100) , "% +-", sprintf("%.3f", margin_EventRate*100), "%")
 
 # - Calculate MAE over time by sample
-port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, Sample), names_from = c(Sample), values_from = c(EventRate))
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(Sample), values_from = c(EventRate))
 (diag.samplingRep.train <- mean(abs(port.aggr2$a_Full - port.aggr2$b_Train)) * 100)
 (diag.samplingRep.valid <- mean(abs(port.aggr2$a_Full - port.aggr2$c_Validation)) * 100)
 (diag.samplingRep.tune <- mean(abs(port.aggr2$a_Full - port.aggr2$d_Tune), na.rm=T) * 100)
 (diag.samplingRep.trainValid <- mean(abs(port.aggr2$b_Train - port.aggr2$c_Validation)) * 100)
 ### RESULTS: Sample-size dependent
-# 1m-sample:   Train: 0.14%, Validation: 0.22%; Tune  (9k < Dec-2017): 1.19%
+# 1.5m-sample:   Train: 0.09%, Validation: 0.16%; Tune (45k): 0.48%
+# 1m-sample:   Train: 0.14%, Validation: 0.22; Tune  (9k < Dec-2017): 1.19%
 # 500k-sample: Train: 0.20%; Validation: 0.31%; Tune  (9k < Dec-2017): 1.16%
 # 300k-sample: Train: 0.26%; Validation: 0.40%; Tune  (9k < Dec-2017): 1.27%
 # 250k-sample: Train: 0.28%; Validation: 0.43%; Tune (25k < Dec-2017): 0.69%
@@ -108,10 +110,10 @@ port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, Sample), names_from = 
 # - Graphing parameters
 chosenFont <- "Cambria"; dpi <- 170
 col.v <- brewer.pal(9, "Set1")[c(1,5,2,4)]; size.v <- c(0.5,0.3,0.3,0.3)
-label.v <- c("a_Full"=expression(italic(A)[t]*": Full set "*italic(D)),
-             "b_Train"=bquote(italic(B)[t]*": Training set "*italic(D)[italic(T)]~"("*.(round(train_prop*smp_size/1000))*"k)"),
-             "c_Validation"=bquote(italic(C)[t]*": Validation set "*italic(D)[italic(V)]~"("*.(round((1-train_prop)*smp_size/1000))*"k)"),
-             "d_Tune"= bquote(italic(D)[t]*": Tuning set "*italic(D)[italic(H)]~"("*.(round(tuneSize/1000))*"k)" ))
+label.v <- c("a_Full"=expression(italic(A)[t]*": Full "*italic(D)),
+             "b_Train"=bquote(italic(B)[t]*": Training "*italic(D)[italic(T)]~"("*.(round(train_prop*smp_size/1000))*"k)"),
+             "c_Validation"=bquote(italic(C)[t]*": Validation "*italic(D)[italic(V)]~"("*.(round((1-train_prop)*smp_size/1000))*"k)"),
+             "d_Tune"= bquote(italic(D)[t]*": Tuning "*italic(D)[italic(H)]~"("*.(round(tuneSize/1000))*"k)" ))
 port.sel <- port.aggr #
 
 
@@ -123,7 +125,7 @@ port.sel <- port.aggr #
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Sample, linetype=Sample, size=Sample)) + 
+    geom_line(aes(colour=Sample, linetype=Sample, linewidth=Sample)) + 
     geom_point(aes(colour=Sample, shape=Sample), size=1) + 
     #annotations
     # annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)],
@@ -147,7 +149,7 @@ port.sel <- port.aggr #
     # facets & scale options
     facet_grid(Facet_label ~ .) + 
     scale_colour_manual(name=bquote("Sample "*italic(bar(D))), values=col.v, labels=label.v) + 
-    scale_size_manual(name=bquote("Sample "*italic(bar(D))), values=size.v, labels=label.v) + 
+    scale_linewidth_manual(name=bquote("Sample "*italic(bar(D))), values=size.v, labels=label.v) + 
     scale_shape_discrete(name=bquote("Sample "*italic(bar(D))), labels=label.v) + scale_linetype_discrete(name=bquote("Sample "*italic(bar(D))), labels=label.v) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y"))
@@ -168,7 +170,7 @@ port.sel <- port.aggr[Sample %in% c("a_Full","b_Train","c_Validation"),]
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Sample, linetype=Sample, size=Sample)) + 
+    geom_line(aes(colour=Sample, linetype=Sample, linewidth=Sample)) + 
     geom_point(aes(colour=Sample, shape=Sample), size=1) + 
     #annotations
     annotate(geom="text", x=as.Date("2012-12-31"), y=port.aggr[Date <= "2008-12-31", mean(EventRate)],
@@ -180,7 +182,7 @@ port.sel <- port.aggr[Sample %in% c("a_Full","b_Train","c_Validation"),]
     # facets & scale options
     facet_grid(Facet_label ~ .) + 
     scale_colour_manual(name="Sample", values=col.v, labels=label.v) + 
-    scale_size_manual(name="Sample", values=size.v, labels=label.v) + 
+    scale_linewidth_manual(name="Sample", values=size.v, labels=label.v) + 
     scale_shape_discrete(name="Sample", labels=label.v) + scale_linetype_discrete(name="Sample", labels=label.v) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y"))
