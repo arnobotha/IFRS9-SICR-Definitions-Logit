@@ -63,6 +63,64 @@ datSICR_tune <- datSICR_rest %>% group_by(SICR_target, Date) %>%
   slice_sample(prop=tuneSize/nrow(datSICR_rest)) %>% mutate(Sample="d_Tune") %>% as.data.table()
 
 
+# --- Frequency analysis on n-way stratified inner sampling technique
+
+# - Determine subsampling window given cross-sectional design
+SICR_StartDte <- min(datSICR$Date, na.rm=T)
+SICR_EndDte <- max(datSICR$Date, na.rm=T) - month(k)
+
+# - Aggregate data according to the same n-way stratified sampling technique used within subsampling/resampling scheme
+datStrata <- datSICR_train[Date >= SICR_StartDte & Date <= SICR_EndDte, list(Freq = .N) ,by=list(SICR_target, Date)][,Freq_Date:= sum(Freq,na.rm=T),by=list(Date)][,
+                             list(SICR_target = factor(SICR_target), Date, Freq_Date, Freq, Freq_Perc = Freq/sum(Freq,na.rm=T), Freq_Date_Perc = Freq/Freq_Date)]
+#table(datSICR_smp$SICR_target, datSICR_smp$Date) %>% prop.table() # should give same results
+table(datSICR_train$SICR_target, datSICR_train$Date) %>% prop.table() # should give same results
+
+# - Aesthetics engineering
+datStrata[, Facet_label := paste0("SICR-definition ", SICR_label)]
+
+# - Create summaries for annotations within graph
+table(datSICR_train$SICR_target) %>% prop.table() # Prior probability P(D=1) over all observations: ~ 4.7%
+mean(datStrata[SICR_target==1, Freq_Date_Perc], na.rm=T) # average E_t( P(D=1) ) over all time t ~ 4.6%
+datStrata_aggr <- datStrata[, list(StratumSize_N = .N, StratumSize_Min = min(Freq,na.rm=T), StratumSize_Mean = mean(Freq,na.rm=T),
+                                   StratumSize_SD = sd(Freq,na.rm=T))]
+
+datStrata_aggr[, StrataSize_Margin := qnorm(1-(1-confLevel)/2) * datStrata_aggr$StratumSize_SD / sqrt(datStrata_aggr$StratumSize_N)]
+
+# - Graphing parameters
+chosenFont <- "Cambria"; dpi <- 170
+col.v <- brewer.pal(10, "Dark2")[c(1,2)]
+fill.v <- brewer.pal(10, "Set2")[c(1,2)]
+
+# - Create graph to evidence minimum strata sizes
+(g0 <- ggplot(datStrata, aes(x=Date, y=Freq, group=SICR_target)) + theme_minimal() + 
+  labs(x=bquote("Reporting date (months) "*italic(t)), y=bquote("Proporionate volume of SICR-outcomes (%) within "*italic(D[T])~"("*.(round(train_prop*smp_size/1000))*"k)")) + 
+  theme(text=element_text(family=chosenFont),legend.position = "bottom",
+        axis.text.x=element_text(angle=90), #legend.text=element_text(family=chosenFont), 
+        strip.background=element_rect(fill="snow2", colour="snow2"),
+        strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
+  # main bar graph
+  geom_bar(position="stack", stat="identity", aes(colour=SICR_target, fill=SICR_target), linewidth=0.25) + 
+  # annotations
+    annotate("text", x=as.Date("2013-02-28"), y=datStrata_aggr$StratumSize_Mean, size=3, family=chosenFont,
+             label=paste0(datStrata_aggr$StratumSize_N, " total strata with a mean cell size of ", 
+                          comma(datStrata_aggr$StratumSize_Mean, accuracy=0.1),
+                          " ± ", sprintf("%.1f", datStrata_aggr$StrataSize_Margin), " and a minimum size of ", 
+                          sprintf("%.0f", datStrata_aggr$StratumSize_Min))) +     
+  # facets & scale options
+  facet_grid(Facet_label ~ .) + 
+  scale_colour_manual(name="SICR target", values=col.v) + 
+  scale_fill_manual(name="SICR target", values=fill.v) + 
+  scale_y_continuous(breaks=pretty_breaks(), label=comma) + 
+  scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y") )
+
+# - Save graph
+ggsave(g0, file=paste0(genFigPath, "StrataDesign_Train_", SICR_label,".png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
+
+
+
+  
+  
+
 
 # ----- 2. SICR-incidence rate over time by sample
 # - Merge samples together
@@ -76,8 +134,8 @@ datSICR_graph[, SICR_target := as.numeric(levels(SICR_target))[SICR_target]]
 
 # - Aggregate to monthly level and observe up to given point
 SICR_StartDte <- min(datSICR$Date, na.rm=T)
+SICR_EndDte <- max(datSICR$Date, na.rm=T) - month(k)
 if (p.s>1 & p.k>3) { SICR_StartDte <- SICR_StartDte + month(1)} # slight visual adjustment
-SICR_EndDte <- max(datSICR$Date, na.rm=T)
 port.aggr <- datSICR_graph[SICR_def==0, list(EventRate = sum(SICR_target, na.rm=T)/.N, AtRisk = .N),
                            by=list(Sample, Date)][Date >= SICR_StartDte & Date <= SICR_EndDte,] %>% setkey(Sample,Date)
 
@@ -114,7 +172,7 @@ label.v <- c("a_Full"=expression(italic(A)[t]*": Full "*italic(D)),
              "b_Train"=bquote(italic(B)[t]*": Training "*italic(D)[italic(T)]~"("*.(round(train_prop*smp_size/1000))*"k)"),
              "c_Validation"=bquote(italic(C)[t]*": Validation "*italic(D)[italic(V)]~"("*.(round((1-train_prop)*smp_size/1000))*"k)"),
              "d_Tune"= bquote(italic(D)[t]*": Tuning "*italic(D)[italic(H)]~"("*.(round(tuneSize/1000))*"k)" ))
-port.sel <- port.aggr #
+port.sel <- port.aggr
 
 
 # - Create graph 1 (all sets)
@@ -190,6 +248,10 @@ port.sel <- port.aggr[Sample %in% c("a_Full","b_Train","c_Validation"),]
 # - Save graph
 ggsave(g3, file=paste0(genFigPath, "SICR-Incidence_SampleRates_", SICR_label,"_ExclTune.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
+
+# - cleanup
+rm(datSICR, datSICR_rest, datSICR_smp, datSICR_train, datSICR_valid, datSICR_tune, datSICR_graph, port.aggr, port.aggr2, port.sel,
+   datStrata, datStrata_aggr)
 
 
 
