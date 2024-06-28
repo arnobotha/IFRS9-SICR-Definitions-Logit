@@ -43,6 +43,15 @@ SICR_label <- "1a(i)"
 chosenFont <- "Cambria"
 dpi <- 250
 
+# - Field names
+stratifiers <- c("SICR_target_event", "Date") # Must at least include target variable used in graphing event rate
+targetVar <- "SICR_target_event"
+timeVar <- "Date"
+
+# - Subsampling & resampling parameters
+smp_size <- 1000000 # fixed size of downsampled set
+train_prop <- 0.7 # sampling fraction for resampling scheme
+
 
 
 
@@ -55,9 +64,8 @@ if (!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allin
 colnames(datCredit_allInputs)
 
 # - Remove variables that will not be used in model building
-suppressWarnings( datCredit_allInputs[, `:=`(slc_past_due_amt = NULL, DefaultStatus1 = NULL, WOff_Ind = NULL, 
-                                             EarlySettle_Ind = NULL, ExclusionID = NULL, FurtherLoan_AmtLog = NULL,
-                                             Redrawn_AmtLog = NULL)])
+suppressWarnings( datCredit_allInputs[, `:=`(value_ind_slc_acct_roll_ever_24 = NULL, value_ind_slc_pmnt_method = NULL, value_ind_slc_acct_arr_dir_3 = NULL, 
+                                             value_ind_slc_acct_pre_lim_perc = NULL, value_ind_slc_acct_prepaid_perc_dir_12 = NULL)])
 
 
 
@@ -131,25 +139,30 @@ rm(check_SICR_periods); gc()
 # Therefore, subsample the train and test datasets to have 1 million observations in total
 
 # - Firstly, resample 1000000 observations of the data - two-way stratified dataset by SICR-event and date
-set.seed(1) # ensure that we get the same split each time
-smp_size <- 1000000 # we want a million observations from the population
-smp_percentage <- smp_size/nrow(dat_SICR_def)
-dat_SICR_def_resample <- stratified(dat_SICR_def, c("SICR_target_event", "Date"), smp_percentage)
-# - check representativeness | proportions should be similar
-table(dat_SICR_def_resample$SICR_target_event) %>% prop.table() #success
-rm(dat_SICR_def); gc()
+smp_perc <- smp_size / ( dat_SICR_def[complete.cases(mget(stratifiers)), mget(stratifiers)][,.N] ) # Implied sampling fraction for downsampling step
 
-# - Resample the smaller dataset into 70% train and 30% test
-dat_SICR_def_resample[, ind := 1:.N]
-set.seed(1) # ensure that we get the same split each time
-dat_SICR_def_train_s <- stratified(dat_SICR_def_resample, c("SICR_target_event", "Date"), 0.7)
-vec_SICR_def_train <- pull(dat_SICR_def_train_s, "ind") # identify the observations in the training dataset
-dat_SICR_def_valid_s <- dat_SICR_def_resample[!(dat_SICR_def_resample$ind %in% vec_SICR_def_train),]
+# - Downsample data into a set with a fixed size (using stratified sampling) before implementing resampling scheme
+set.seed(1)
+dat_SICR_def_resample <- dat_SICR_def %>% drop_na(all_of(stratifiers)) %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=smp_perc) %>% as.data.table()
+cat( (dat_SICR_def_resample[is.na(get(targetVar)), .N] == 0) %?% 'SAFE: No missingness in target variable.\n' %:% 
+       'WARNING: Missingness detected in target variable.\n')
+# safe, not missings
+
+# - Merge the macros on
+dat_SICR_def_resample <- merge_macro_info(input_dat = dat_SICR_def_resample)
+
+# - Apply basic cross-validation resampling scheme with 2-way stratified sampling
+dat_SICR_def_resample[, Ind := 1:.N] # prepare for resampling scheme
+
+# - Implement resampling scheme using given main sampling fraction
+set.seed(1)
+dat_SICR_def_train_s <- dat_SICR_def_resample %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=train_prop) %>% as.data.table()
+dat_SICR_def_valid_s <- subset(dat_SICR_def_resample, !(Ind %in% dat_SICR_def_train_s$Ind)) %>% as.data.table()
+
 # - Clean-up
-rm(vec_SICR_def_train); gc()
-dat_SICR_def_resample[, ind := NULL]
-dat_SICR_def_train_s[, ind := NULL]
-dat_SICR_def_valid_s[, ind := NULL]
+dat_SICR_def_resample[, Ind := NULL]
+dat_SICR_def_train_s[, Ind := NULL]
+dat_SICR_def_valid_s[, Ind := NULL]
 
 # - Check the event rate of the training and validation data sets to ensure the SICR-events are balanced
 table(dat_SICR_def_train_s$SICR_target_event) %>% prop.table()
@@ -633,11 +646,7 @@ varKeep <- c("LoanID", "Date", "Counter",
              "g0_Delinq", "PerfSpell_Num", "TimeInPerfSpell", "slc_acct_roll_ever_24_imputed", "slc_acct_arr_dir_3",
              # Credit-themed inputs
              "BalanceLog", "Term", "InterestRate_Margin", "pmnt_method_grp", 
-             "slc_acct_pre_lim_perc_imputed", 
-             # Macroeconomic-themed inputs
-             "M_Repo_Rate", "M_Inflation_Growth", 
-             "M_DTI_Growth", "M_DTI_Growth_12", 
-             "M_RealGDP_Growth"
+             "slc_acct_pre_lim_perc_imputed", "PD_ratio"
 )
 datSICR <- subset(datCredit_allInputs, select=varKeep)
 
@@ -676,6 +685,23 @@ smp_size <- 250000; smp_percentage <- smp_size/nrow(datSICR)
 set.seed(1)
 datSICR_smp <- datSICR %>% group_by(SICR_target, Date) %>% slice_sample(prop=smp_percentage) %>% as.data.table()
 
+# - Join the macros on the filtered dataset to avoid memory constraints
+datSICR_smp <- merge_macro_info(input_dat = datSICR_smp)
+
+# - Filter again for the variables to keep
+varKeep <- c("LoanID", "Date", "Counter", "SICR_target", "ind",
+             # Delinquency-theme inputs
+             "g0_Delinq", "PerfSpell_Num", "TimeInPerfSpell", "slc_acct_roll_ever_24_imputed", "slc_acct_arr_dir_3",
+             # Credit-themed inputs
+             "BalanceLog", "Term", "InterestRate_Margin", "pmnt_method_grp", 
+             "slc_acct_pre_lim_perc_imputed", "PD_ratio",
+             # Macroeconomic-themed inputs
+             "M_Repo_Rate", "M_Inflation_Growth", 
+             "M_DTI_Growth", "M_DTI_Growth_12", 
+             "M_RealGDP_Growth" 
+)
+datSICR_smp <- subset(datSICR_smp, select=varKeep)
+
 # - Implement resampling scheme using 70% as sampling fraction
 set.seed(1)
 datSICR_train <- datSICR_smp %>% group_by(SICR_target, Date) %>% slice_sample(prop=0.7) %>% mutate(Sample="Train") %>% as.data.table()
@@ -691,9 +717,14 @@ table(datSICR_valid$SICR_target) %>% prop.table()
 rm(datSICR); gc()
 
 # - Define model form
-inputs_chosen <- SICR_target ~ Term + InterestRate_Margin + BalanceLog + TimeInPerfSpell + PerfSpell_Num + g0_Delinq +
+inputs_chosen <- SICR_target ~ Term + InterestRate_Margin + BalanceLog + TimeInPerfSpell + PerfSpell_Num + g0_Delinq + PD_ratio +
                                slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + slc_acct_pre_lim_perc_imputed +
                                pmnt_method_grp + M_Repo_Rate + M_Inflation_Growth + M_DTI_Growth + M_DTI_Growth_12 + M_RealGDP_Growth
+# Results first without the inclusion of the PD ratio
+# All variables are statistically significant apart from inflation growth, although inflation growth was purposefully included
+# PD ratio is not statistically significant (p-value of 0.34 and standard error of 0.0010590) as well as inflation growth
+# But all other variables remain statistically significant
+# EO: Include this in the write-up of patterns where we see significance/insignificance
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -708,9 +739,9 @@ datSICR_valid[, Prob_chosen_1a_i := predict(logit_model_chosen, newdata = datSIC
 datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type="response")]
 
 # - Compute the AUC
-auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_1a_i) # 91.44%
-auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_1a_i) # 91.31%
-auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 91.4%
+auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_1a_i) # 91.44% (before) vs 91.44% (after)
+auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_1a_i) # 91.31% (before) vs 91.29% (after)
+auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 91.4% (before) vs 91.39% (after)
 
 
 # --- 5.2 Plot the density of the class probabilities

@@ -496,3 +496,248 @@ evalModel <- function(model_assess, dataSet, graphSet, target, modelType="SVM", 
 #expDisc, expProb, dataSet_scored); gc()
 #rm(svm_model_assess,dataSet,graphSet,target,modelType,cutOFF)
 
+
+
+# ------------------------- JOIN MACROECONOMIC DATA FUNCTION ---------------------------
+
+merge_macro_info <- function (input_dat){
+  
+  # - Preliminaries
+  require(data.table)
+  require(ETLUtils)
+  require(ffbase)
+  
+  if (!exists('dat_SICR_MVs')) unpack.ffdf(paste0(genPath,"datSICR_MVs"), tempPath)
+  
+  # - Find intersection between fields in the credit dataset and the macroeconomic dataset
+  (overlap_flds <- intersect(colnames(input_dat), colnames(dat_SICR_MVs))) 
+  
+  # - Merge on Date by performing a left-join
+  output_dat <- as.data.table(merge(input_dat, dat_SICR_MVs, by="Date", all.x=T)); gc()
+  
+  # - Validate merging success by checking for missingness (should be zero)
+  list_merge_variables <- list(colnames(dat_SICR_MVs))
+  results_missingness <- list()
+  for (i in 1:length(list_merge_variables)){
+    output <- sum(is.na(output_dat$list_merge_variables[i]))
+    results_missingness[[i]] <- output
+  }
+  cat((length(which(results_missingness > 0)) == 0) %?% "SAFE: No missingness, fusion with macroeconomic data is successful.\n" %:%
+        "WARNING: Missingness in certain macroecnomic fields detected, fusion compromised.\n")
+  
+  return(output_dat)
+  
+}
+
+
+
+# ------------------------- VARIABLE IMPORTANCE FOR LOGIT MODELS ---------------------------
+# A function for measuring and rank-ordering the variable "importance" given a logit model
+# Three such measures are implemented:
+# 1) standardised coefficients via refitting on Z-scored input space [stdCoef_ZScores]
+# 2) absolute coefficients [absCoef]
+# 3) partial dependence (an explanable AI measure; see https://arxiv.org/pdf/1904.03959.pdf) [partDep]
+# Regarding measures 1-2, the size of coefficients (or transforms thereof) are used in ranking the 
+# variables from most to least "important". A larger/ smaller measure-value indicates a more/ less important
+# Input:  [logit_model]: A logistic regression model trained using glm()
+#         [method]:      "stdCoef"; "absCoef", "partDep" using the "FIRM"-technique from the vip::vi_firm() function
+#         [sig_level]:   Significance level or threshold under which the variables are considered as statistically significant using p-values from the Wald-statistic
+#         [impPlot]:     Switch for producing a bar chart that shows the variable importance according to the specified measure
+#         [pd_plot]:     Should a partial dependence plot be created for each variable
+# Output: A data table containing the variable importance information
+varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.05, impPlot=F, pd_plot=F, chosenFont="Cambria", 
+                            colPalette="BrBG", colPaletteDir=1, plotName=paste0(genFigPath, "VariableImportance_", method,".png"), limitVars=10, dpi=180){
+  
+  # - Unit testing conditions:
+  # logit_model <- glm(default ~ student + balance + income, data=datTrain1, family="binomial")
+  # method <- "stdCoef_ZScores"; sig_level<-0.05; impPlot<-T; pd_plot<-T; chosenFont="Cambria"; colPalette="BrBG"; colPaletteDir=1
+  # plotName=paste0(genFigPath, "VariableImportance_", method,".png"); limitVars=10
+  
+  # - Safety check
+  if (!any(class(logit_model) %in% c("glm", "lm"))) stop("Specified model object is not of class 'glm' or 'lm'. Exiting .. ")
+  
+  # --- 0. Setup
+  # - Get the data the model was trained on
+  datTrain1 <- subset(logit_model$data, select = names(logit_model$data)[names(logit_model$data) %in% names(model.frame(logit_model))])
+  # Getting the names of the original training dataset
+  datTrain1_names <- names(datTrain1)
+  
+  # - Filtering for significant variables
+  coefficients_summary <- data.table(names=names(summary(logit_model)$coefficients[,4][-1]), sig=summary(logit_model)$coefficients[,4][-1],
+                                     coefficient=summary(logit_model)$coefficients[,1][-1], se=summary(logit_model)$coefficients[,2][-1]) %>% arrange(names) # Names of variables in the model
+  coefficients_sig_model_level <- as.list(rep(0,coefficients_summary[,.N])) # Corresponding level name of the categorical variable; NULL in the case of a numeric or integer variable
+  coefficients_data <-  data.table(names=names(datTrain1)[-which(names(datTrain1) %in% names(model.frame(logit_model))[1])]) %>% arrange(names) # Names of variables training dataset
+  coefficients_sig_data_index <- rep(0,coefficients_summary[,.N]) # Index showing if the variable in the model is significant or not
+  coefficients_sig_data <- rep(0,coefficients_summary[,.N]) # Names of the significant variable's associated column name in the training dataset
+  sig_level <- ifelse(is.na(sig_level),1,sig_level) # The significance level against which each variable must be tested
+  k <- 1 # Counter
+  for (i in 1:length(coefficients_data$names)){ # Main loop - looping through all the relevant variables in the training dataset
+    if(class(datTrain1[,get(coefficients_data$names[i])]) %in% c("numeric", "integer")){ # Do the following if variable i is numeric
+      coefficients_sig_data_index[k] <- coefficients_summary$sig[k]<=sig_level
+      coefficients_sig_data[k] <- as.character(coefficients_data[i,])
+      coefficients_sig_model_level[[k]] <- NA 
+      k<-k+1
+    } else { # Do the following if variable i is numeric
+      levels_n <- length(unique(datTrain1[,get(coefficients_data$names[i])]))-1
+      coefficients_sig_data_index[k:(k+levels_n-1)] <- rep(ifelse(any(coefficients_summary$sig[k:(k+levels_n-2)]<=sig_level),T,F),levels_n) # Checking if any levels of this variable is significant
+      coefficients_sig_data[k:(k+levels_n-1)] <- as.character(coefficients_data[i,])
+      for(j in 1:levels_n){
+        coefficients_sig_model_level[[k+j-1]] <- unique(datTrain1[,get(coefficients_data$names[i])])[order(unique(datTrain1[,get(coefficients_data$names[i])]))][-1][j]
+      }
+      k<-k+levels_n
+    }
+  }
+  
+  coefficients_sig_model <- coefficients_summary$names[coefficients_sig_data_index==1] # Names of variables in model (may be more than the number of variables in the training dataset due to hot one encoding)
+  coefficients_sig_model_level <- coefficients_sig_model_level[!coefficients_sig_data_index==0] # The chain ensures that only levels of the significant categorical variables are chosen
+  coefficients_sig_data <- coefficients_sig_data[coefficients_sig_data_index==1] # The chaining ensures that only the columns pertaining to the significant variables are chosen
+  
+  # - Stopping the function if there are no significant variables
+  if (is.null(coefficients_data)) stop("ERROR: Variable importance not conducted since there are no significant variables.") 
+  
+  # - Initiating the dataset to be returned (results dataset)
+  results <- list(data = data.table(Variable = coefficients_sig_model,Value = 0,Rank = 0))
+  
+  # --- 2. Calculating variable importance based on specified method
+  
+  if (method=='stdCoef_ZScores'){
+    # -- Standardizing the input space using Z-scores, followed by refitting the logit model
+    # B = \beta - mean(X) / sd(x)
+    # NOTE: The resulting coefficients are therefore "standardized", as per Menard2011 (http://www.jstor.org/stable/41290135)
+    
+    # Scaling the variables
+    datTrain2 <- copy(datTrain1)
+    for (i in 1:length(unique(coefficients_sig_data))){
+      # Checking if the variable is numeric so that the underlying training data can be scaled
+      if (class(datTrain2[, get(unique(coefficients_sig_data)[i])]) %in% c("numeric","integer")){ ### Can have a "binary" as well as "factor" type variables - check how these types of variables are handled - check in an additional script to confirm; factorise numeric variables (in model call)P and fit model - check funcitonality
+        datTrain2[, (unique(coefficients_sig_data)[i]) := (get(unique(coefficients_sig_data)[i])-mean(get(unique(coefficients_sig_data)[i]),na.rm=T))/sd(get(unique(coefficients_sig_data)[i]), na.rm=T)]
+      } # if
+    }
+    # Re-training the model on the scaled data
+    suppressWarnings( logit_model <- glm(logit_model$formula, data=datTrain2, family="binomial") )
+    
+    # Calculating importance measure and preparing result set
+    results$data[,Value := data.table(names=names(logit_model$coefficients[which(names(logit_model$coefficients) %in% coefficients_sig_model)]),
+                                      Std_Coefficient=logit_model$coefficients[which(names(logit_model$coefficients) %in% coefficients_sig_model)]) %>% arrange(names) %>% subset(select="Std_Coefficient")]
+    results$Method <- "Standardised coefficients using Z-scores"
+    
+  } else if (method=="stdCoef_Goodman") { 
+    # -- Variable importance based on Goodman's standardised coefficients
+    # See Menard2011; https://www.jstor.org/stable/41290135)
+    # B = \beta / sd(\beta)
+    
+    # Calculating importance measure and preparing result set
+    results$data <- copy(coefficients_summary)[names %in% coefficients_sig_model]
+    results$data[,Value:=coefficient/se] # Compute the importance measure
+    results$data[,`:=`(coefficient=NULL,se=NULL, sig=NULL)]; colnames(results$data) <- c("Variable", "Value")
+    results$Method <- "Standardised coefficients: Goodman"
+    
+  } else if (method=="stdCoef_Menard"){ 
+    # -- Variable importance based on Menard's standardised coefficients from Menard2011; https://www.jstor.org/stable/41290135)
+    # B = \beta . s_x . R / s_{logit( \hat{Y} )}, where s_x is the standard deviation of X, R is the Pearson correlation between observed values Y and 
+    # predicted class probabilities \hat{Y}, and s_\hat{Y} is the standard deviation of logit(\hat{Y})
+    
+    # Computing the standard deviations for each x (this requires a loop to ensure that categorical variables are correctly accounted for)
+    ### AB: how to compute exactly for categorical? Google suggests standard error of bin proportion, Harrell suggests using "binconf" function from Hmisc-package to calculate Wilson's confidence interval
+    # see (https://stats.stackexchange.com/questions/51248/how-can-i-find-the-standard-deviation-in-categorical-distribution#:~:text=There%20is%20no%20standard%20deviation,a%20binomial%20or%20multinomial%20proportion.)
+    sd_x <- rep(0, length(coefficients_sig_model))
+    for (i in 1:length(coefficients_sig_model)){
+      x <- datTrain1[,get(coefficients_sig_data[i])]
+      if (class(x) %in% c("numeric", "integer")){
+        sd_x[i] <- sd(x, na.rm=T)
+      } else {
+        levels_n <- length(unique(datTrain1[,get(coefficients_sig_data[i])]))
+        if (levels_n==2){
+          x <- as.numeric(x == coefficients_sig_model_level[[i]])
+        } else {
+          x <- as.numeric(x == coefficients_sig_model_level[[i]])
+        }
+        sd_x[i] <- sd(x, na.rm=T)
+      } # else
+    } # for
+    
+    # Computing the standard deviation for each y
+    y_prob <- na.omit(predict(logit_model, newdata = datTrain1, type="response")); y_logit <- log(y_prob/(1-y_prob)) # Standard deviation of predictions
+    sd_y <- sd(y_logit) 
+    # Computing the coefficient of determination
+    r2 <- coefDeter_glm(logit_model)
+    # Computing the variable importance
+    results$data$Value <- coefficients_summary$coefficient[coefficients_sig_data_index==1] * r2 * (sd_x/sd_y)
+    
+    # Calculating importance measure and preparing result set
+    results$data <- copy(coefficients_summary)[names %in% coefficients_sig_model]
+    results$data[,Value:=abs(coefficient/se)] # Compute the importance measure
+    results$data[,`:=`(coefficient=NULL,se=NULL, sig=NULL)]; colnames(results$data) <- c("Variable", "Value")
+    results$Method <- "Standardised Coefficients: Menard"
+    
+  } else if (method=="partDep") { # - Variable importance as determined by feature importance rank measure (FIRM) (explainable AI technique)
+    
+    # Calculating importance measure and preparing result set
+    results$data <- vip::vi_firm(logit_model, feature_names=coefficients_sig_data, method="firm", train=datTrain1)
+    
+    # Calculating (and) the partial dependence
+    if (pd_plot==T){
+      for (i in seq_along(coefficients_sig_model)){
+        datPlot_pd <- data.table(attr(results$data, which = "effects")[[i]])
+        names(datPlot_pd) <- c("x","y")
+        (results$plots[[paste0("pd_",coefficients_sig_model[i])]] <- ggplot(datPlot_pd) + geom_point(aes(x=x,y=y)) + theme_minimal() +
+            labs(x=coefficients_sig_data[i],y="yhat") + theme(plot.title = element_text(hjust=0.5)))
+      } # for
+    } # if
+    
+    # Adding a column to indicate the rank order of the variables' importance and getting the data in the desired format
+    results$data <- data.table(results$data) %>% rename(Value = Importance)
+    results$Method <- "Partial Dependence (FIRM)"
+    
+  } else {stop(paste0('"', method,'" is not supported. Please use either "stcCoef_ZScores", "stdCoef_Goodman", "stdCoef_Menard", or "pd" as method.'))}# if else (method)
+  
+  # - Ranking the variables according to their associated importance measure values
+  results$data[,Value_Abs:=abs(Value)]
+  results$data <- results$data %>% arrange(desc(Value_Abs)) %>% mutate(Rank=row_number()) %>% as.data.table()
+  
+  # - Calculate contribution degrees to sum of importance measure across all variables
+  # NOTE: These contributions are merely ancillary and for graphing purposes.
+  # They should not considered too seriously, unless studied more extensively.
+  sumVarImport <- sum(results$data$Value_Abs, na.rm=T)
+  results$data[, Contribution := Value_Abs / sumVarImport]
+  
+  # - Post results to console
+  #print(results$data)
+  
+  # --- 3. Creating a general plot of the variable importance (if desired)
+  if (impPlot==T){
+    # Generic variable importance plot
+    (results$plots[["Ranking"]] <- ggplot(results$data, aes(x=reorder(Variable, Value_Abs))) + geom_col(aes(y=Value_Abs, fill=Value_Abs)) +
+       coord_flip() + theme_minimal() + theme(text=element_text(family=chosenFont)) +
+       labs(x="Variable name", y=results$Method))
+    
+    # - create graphing object based on the top [limitVars]-number of variables
+    datGraph <- results$data[1:min(.N, limitVars), ]
+    
+    # - cull away lengthy names that will otherwise ruin the graph
+    datGraph[, Variable_Short := ifelse(str_length(Variable) >= 18, paste0(substr(Variable, 1, 18),".."), Variable)]
+    
+    # Generic variable importance plot
+    results$plots[["Ranking"]] <- ggplot(datGraph, aes(x=reorder(Variable_Short, Value_Abs))) + theme_minimal() + theme(text=element_text(family=chosenFont)) + 
+      geom_col(aes(y=Value_Abs, fill=Value_Abs)) + geom_label(aes(y=sumVarImport*0.05, label=paste(percent(Contribution, accuracy=0.1)), fill=Value_Abs), family=chosenFont) + 
+      annotate(geom="text", x=datGraph[.N, Variable_Short], y=sumVarImport*0.3, label=paste0("Variable Importance (sum): ", comma(sumVarImport, accuracy=0.1)), family=chosenFont, size=3) + 
+      coord_flip() + scale_fill_distiller(palette=colPalette, name="Absolute value", direction=colPaletteDir) +
+      scale_colour_distiller(palette=colPalette, name="Absolute value", direction=colPaletteDir) + 
+      labs(x="Variable name", y=results$Method)
+    
+    # Show plot to current display device
+    print(results$plots[["Ranking"]])
+    
+    cat("Saving plot of variable importance at: ", plotName, "\n")
+    # - Save graph
+    ggsave(results$plots[["Ranking"]] , file=plotName, width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
+    
+  }
+  
+  # - Return results
+  return(results)
+  # rm(logit_model, datTrain1, datTrain2, method, impPlot, coefficients_sig_model, coefficients_sig_data, sumVarImport, limitVars, coefficients_data, coefficients_sig_data, coefficients_summary, coefficients_sig_model_level)
+}
+
+
+
