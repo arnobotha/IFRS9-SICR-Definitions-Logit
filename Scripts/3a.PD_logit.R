@@ -15,10 +15,9 @@
 #   - datCredit_real | enriched credit dataset (script 2d)
 
 # -- Outputs:
-#   - inputs_chosen, logit_model_chosen | Chosen input variables + trained model
-#   - logistic_cutoff | cut-off scalar (chosen using Youden's cost-sensitive Index)
-#   - performance_measures | various performance measures for trained model
-#   - <analytics>
+#   - <Basic PD-model> 
+#   - <Actual vs Expected time graph of default rate>
+#   - datCredit_real | Further enriched with probability scores of the basic PD-model
 # ==============================================================================
 
 
@@ -214,5 +213,7 @@ describe(datCredit_real$PD_ratio)
 
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "creditdata_final4c"), datCredit_real)
-gc()
+
+# - Cleanup
+rm(datCredit_smp, datCredit_train, datCredit_valid, g, logitMod_basic, vLabel); gc()
 
