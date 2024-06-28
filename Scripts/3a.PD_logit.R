@@ -12,7 +12,7 @@
 #   - 2d.Data_Fusion.R
 
 # -- Inputs:
-#   - datCredit_allInputs | enriched credit dataset (script 2d)
+#   - datCredit_real | enriched credit dataset (script 2d)
 
 # -- Outputs:
 #   - inputs_chosen, logit_model_chosen | Chosen input variables + trained model
@@ -29,7 +29,7 @@
 
 # - Graphing parameters
 chosenFont <- "Cambria"
-dpi <- 250
+dpi <- 180
 
 # - Field names
 stratifiers <- c("DefaultStatus1_lead_12_max", "Date") # Must at least include target variable used in graphing event rate
@@ -46,11 +46,11 @@ train_prop <- 0.7 # sampling fraction for resampling scheme
 # ------- 1. Remove irrelevant variables and ensure that 12-month forward-looking indicator exists on all data
 
 # - Confirm prepared data after exclusions is loaded into memory
-if (!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allinputs"), tempPath)
+if (!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4b"), tempPath)
 
 # - Remove data where 12-month forward-looking indicator could not have been created due to date restriction
-datCredit_allInputs_PD <- subset(datCredit_allInputs, !is.na(DefaultStatus1_lead_12_max))
-describe(datCredit_allInputs_PD$DefaultStatus1_lead_12_max)
+datCredit_real_PD <- subset(datCredit_real, !is.na(DefaultStatus1_lead_12_max))
+describe(datCredit_real_PD$DefaultStatus1_lead_12_max)
 # confirmed, no missingness
 
 
@@ -59,11 +59,11 @@ describe(datCredit_allInputs_PD$DefaultStatus1_lead_12_max)
 # ------ 2. Sample the data and then split between train and test
 
 # - Preliminaries
-smp_perc <- smp_size / ( datCredit_allInputs_PD[complete.cases(mget(stratifiers)), mget(stratifiers)][,.N] ) # Implied sampling fraction for downsampling step
+smp_perc <- smp_size / ( datCredit_real_PD[complete.cases(mget(stratifiers)), mget(stratifiers)][,.N] ) # Implied sampling fraction for downsampling step
 
 # - Downsample data into a set with a fixed size (using stratified sampling) before implementing resampling scheme
 set.seed(1)
-datCredit_smp <- datCredit_allInputs_PD %>% drop_na(all_of(stratifiers)) %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=smp_perc) %>% as.data.table()
+datCredit_smp <- datCredit_real_PD %>% drop_na(all_of(stratifiers)) %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=smp_perc) %>% as.data.table()
 cat( (datCredit_smp[is.na(get(targetVar)), .N] == 0) %?% 'SAFE: No missingness in target variable.\n' %:% 
        'WARNING: Missingness detected in target variable.\n')
 
@@ -89,7 +89,7 @@ table(datCredit_valid$DefaultStatus1_lead_12_max) %>% prop.table()
 # success - the event rates are the same
 
 # - Clean-up
-rm(datCredit_allInputs_PD)
+rm(datCredit_real_PD)
 
 
 
@@ -97,7 +97,7 @@ rm(datCredit_allInputs_PD)
 # ------ 3. Develop a basic PD-model
 
 # - Define input variables
-inputs_basic_logit <-  DefaultStatus1_lead_12_max ~ AgeToTerm + Term + Principal + Balance + InterestRate_Margin +
+inputs_basic_logit <-  DefaultStatus1_lead_12_max ~ Age_Adj + Term + Principal_Real + Balance_Real + InterestRate_Margin +
                                                     slc_acct_pre_lim_perc_imputed + pmnt_method_grp
                                                     
 # - Full logit model with all combined thematically selected variables
@@ -110,93 +110,109 @@ summary(logitMod_basic)
 datCredit_train[, Prob_account := predict(logitMod_basic, newdata = datCredit_train, type="response")]
 datCredit_valid[, Prob_account := predict(logitMod_basic, newdata = datCredit_valid, type="response")]
 
-auc(datCredit_train$DefaultStatus1_lead_12_max, datCredit_train$Prob_account) # 73.26%
-auc(datCredit_valid$DefaultStatus1_lead_12_max, datCredit_valid$Prob_account) # 73.57%
+auc(datCredit_train$DefaultStatus1_lead_12_max, datCredit_train$Prob_account) # 73.66%
+auc(datCredit_valid$DefaultStatus1_lead_12_max, datCredit_valid$Prob_account) # 73.94%
+
+# - Evaluate fit using pseudo R^2-measures based on deviance vs null deviance
+coefDeter_glm(logitMod_basic)
+### RESULTS: McFadden 7.8%
 
 # - Variable importance
-varImport_logit(logitMod_basic, method="stdCoef_Goodman", sig_level=0.1, impPlot=T)
+varImport_logit(logitMod_basic, method="stdCoef_Goodman", sig_level=0.1, impPlot=T, plotVersionName = "PD_Basic")
 ### RESULTS: Top three variables: Payment method, Prepaid funds, and Balance
 
-# - Calculate the total number of default-events per month
-# training data
-def_count_train <- datCredit_train[DefaultStatus1_lead_12_max == 1, .N, by=.(year(Date), month(Date))]
-names(def_count_train)[names(def_count_train)=="N"] <- "default_obs_train"
-
-all_obs_train <- datCredit_train[, .N, by=.(year(Date), month(Date))]
-names(all_obs_train)[names(all_obs_train)=="N"] <- "all_obs_train"
-
-# merge to calculate the proportions
-default_rates_train <- merge(all_obs_train, def_count_train, by=c("year", "month"), all.x=T)
-default_rates_train[, def_prop_train := default_obs_train/all_obs_train]
-
-# validation data
-def_count_valid <- datCredit_valid[DefaultStatus1_lead_12_max == 1, .N, by=.(year(Date), month(Date))]
-names(def_count_valid)[names(def_count_valid)=="N"] <- "def_obs_valid"
-
-all_obs_valid <- datCredit_valid[, .N, by=.(year(Date), month(Date))]
-names(all_obs_valid)[names(all_obs_valid)=="N"] <- "all_obs_valid"
-
-# merge to calculate the proportions
-default_rates_valid <- merge(all_obs_valid, def_count_valid, by=c("year", "month"), all.x=T)
-default_rates_valid[, def_prop_valid := def_obs_valid/all_obs_valid]
-
-# - Merge all the default-rate data sets into one to construct a graph to check whether the SICR-incidence rates align
-def_rates_all <- merge(default_rates_train, default_rates_valid, by=c("year", "month"), all.x=T)
-
-# define a date variable to use in the plot
-def_rates_all[, Date := as.Date(paste(year, month,"01",sep="-"))]
-
-# clean-up
-rm(all_obs_train, all_obs_valid, def_count_train, def_count_valid, default_rates_train, default_rates_valid); gc()
-
-# - Now plot the proportions
-# note - change the font and y-axis to percentage
-plot.data_def_rates <- as.data.table(gather(def_rates_all[, list(Date, a=def_prop_train, b=def_prop_valid)
-], key="Prop", value = "Proportion", -Date))
-
-col.v <- brewer.pal(3, "Set2")
-label.vec <- c("Stratified training data set", "Stratified validation data set")
-shape.v <- c(15,16)
-
-ggplot(plot.data_def_rates, aes(x=Date, y=Proportion, colour=Prop)) + 
-  theme_minimal() + 
-  geom_line(aes(x=Date, y=Proportion, colour=Prop), size=0.5) + 
-  geom_point(aes(x=Date, y=Proportion, colour=Prop, shape=Prop), size=2) + 
-  theme(legend.position = "bottom", text=element_text(family=chosenFont)) + 
-  labs(y="Default-incidence rates", x= "Time") + 
-  scale_colour_manual(name="Data sets", values=col.v, labels=label.vec) + 
-  scale_shape_manual(name="Data sets", values=shape.v, labels=label.vec) + 
-  scale_y_continuous(breaks=pretty_breaks(), labels = percent) + 
-  scale_x_date(date_breaks = "2 year", date_labels = "%b %Y") +
-  ggtitle("Line graphs of default-incidence representativeness across different data sets") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-### RESULTS: Rates are the same over time for train and test
-#EO: Actuals vs expected graphing logic in 4a
-# EO: house keeping, maak seker OneDrive is gesync, copy script folder en paste in my eie folder op machine
+# - Residual deviance analysis
+resid_deviance_glm(logitMod_basic)
+### RESULTS: Model fit is strained (3 diagnostics gave warnings)
 
 
 
 
-# ------ 4. Apply the basic PD-model on the full dataset to use at a later stage
+# ------ 4. Portfolio Analytics
+
+# --- 1. Comparison of actual vs expected default rate
+
+# - Add probability scores to the sub sampled set
+datCredit_smp[, prob_basic := predict(logitMod_basic, newdata = datCredit_smp, type="response")]
+
+# - Structure different line series together
+datDefault_graph <- rbind(datCredit_smp[, list(LoanID, Date, DefaultStatus1, Default_target=DefaultStatus1_lead_12_max , Type="a_Actual")],
+                          datCredit_smp[, list(LoanID, Date, DefaultStatus1, Default_target=prob_basic, Type="b_Modelled_prob")])
+
+# - Aggregate to monthly level and observe up to given point
+Def_StartDte <- min(datCredit_smp$Date, na.rm=T)
+Def_EndDte <- max(datCredit_smp$Date, na.rm=T)
+port.aggr <- datDefault_graph[DefaultStatus1==0,list(EventRate = sum(Default_target, na.rm=T)/.N, AtRisk = .N),
+                        by=list(Type,Date)][Date >= Def_StartDte & Date <= Def_EndDte,] %>% setkey(Type,Date)
+
+# - Aesthetics engineering
+port.aggr[, Facet_label := "Worst-ever aggregation approach"]
+
+# - Calculate MAE over time by line graph type in summarising differences amongst line graphs
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(Type), values_from = c(EventRate))
+(diag.Default_Act_ExpProb <- mean(abs(port.aggr2$a_Actual - port.aggr2$b_Modelled_prob)) * 100)
+
+# - Calculate standard deviation of these processes
+stdev_Def_Act <- sd(port.aggr2$a_Actual, na.rm=T)
+stdev_Def_ExpProb <- sd(port.aggr2$b_Modelled_prob, na.rm=T)
+
+# - Calculate so-called risk prudence degree to measure the degree to which the expected default rate exceeds the actual default rate over time
+overPredictDegree_prob <- sum(port.aggr2$b_Modelled_prob>=port.aggr2$a_Actual)/length(port.aggr2$b_Modelled_prob)
+
+# - Graphing parameters
+vCol <- brewer.pal(5, "Set1")
+vLabel <- c("a_Actual"=bquote(italic(A[t])*": Actual event rate"),
+             "b_Modelled_prob"=bquote(italic(B[t])*": Expected event rate"))
+
+# - Create graph
+(g <- ggplot(port.aggr, aes(x=Date, y=EventRate, group=Type)) + theme_minimal() + 
+    labs(x="Reporting date (months)", y="Conditional 12-month default rate (%)") + 
+    theme(text=element_text(family=chosenFont),legend.position = "bottom",
+          axis.text.x=element_text(angle=90),
+          strip.background=element_rect(fill="snow2", colour="snow2"),
+          strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
+    # main line graph with overlaid points
+    geom_line(aes(colour=Type, linetype=Type), size=0.4) + 
+    geom_point(aes(colour=Type, shape=Type), size=1.2) + 
+    #annotations
+    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*1.9,
+             label=paste0("'MAE between '*italic(A[t])*' and '*italic(B[t])*': ", sprintf("%.2f", diag.Default_Act_ExpProb),"%'"),
+             family=chosenFont, size=3, parse=T) + 
+    # facets & scale options
+    facet_grid(Facet_label ~ .) + 
+    scale_colour_manual(name="", values=vCol, labels=vLabel) + 
+    scale_shape_discrete(name="", labels=vLabel) + scale_linetype_discrete(name="", labels=vLabel) + 
+    #guides(colour=guide_legend(nrow=2,byrow=T)) + 
+    scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
+    scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y"))
+
+# - Save graph
+ggsave(g, file=paste0(genFigPath, "TimeGraph_DefaultRate_ActExp.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
+
+# - Cleanup
+rm(datDefault_graph, port.aggr, port.aggr2); gc()
+
+
+
+
+
+# ------ 5. Apply the basic PD-model on the full dataset to use at a later stage
 
 # - Apply the basic PD-model on the full dataset
-datCredit_allInputs[, PD_score := predict(logitMod_basic, newdata = datCredit_allInputs, type="response")]
-datCredit_allInputs[, PD_margin := PD_score - PD_score[1], by=list(LoanID)]
-datCredit_allInputs[, PD_ratio := PD_score / PD_score[1], by=list(LoanID)]
+datCredit_real[, PD_score := predict(logitMod_basic, newdata = datCredit_real, type="response")]
+datCredit_real[, PD_margin := PD_score - PD_score[1], by=list(LoanID)]
+datCredit_real[, PD_ratio := PD_score / PD_score[1], by=list(LoanID)]
 # basic analysis of newly-created variables
-describe(datCredit_allInputs$PD_score)
-describe(datCredit_allInputs$PD_margin)
-describe(datCredit_allInputs$PD_ratio)
+describe(datCredit_real$PD_score)
+describe(datCredit_real$PD_margin)
+describe(datCredit_real$PD_ratio)
 
 
 
 
-# ------- 5. Pack objects to disk
+# ------- 6. Pack objects to disk
 
 # - Save to disk (zip) for quick disk-based retrieval later
-pack.ffdf(paste0(genPath, "creditdata_allinputs"), datCredit_allInputs)
+pack.ffdf(paste0(genPath, "creditdata_final4c"), datCredit_real)
 gc()
-
-
 

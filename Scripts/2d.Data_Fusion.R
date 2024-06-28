@@ -19,7 +19,7 @@
 #   - dat_SICR_MVs | prepared feature engineered macroeconomic data from script 2a
 #
 # -- Outputs:
-#   - datCredit_allInputs | enriched credit dataset, fused with various input fields
+#   - datCredit_real | enriched credit dataset, fused with various input fields
 # ---------------------------------------------------------------------------------------
 # NOTE: This script predominantly comes from another project (Kasmeer).
 # =======================================================================================
@@ -79,9 +79,10 @@ cat(anyNA(datCredit_real[,DefaultStatus1_Aggr_Prop]) %?% "Missingness detected i
 # clean-up
 rm(port.aggr)
 
+
 # - Proportion of new loans vs existing portfolio over time
-# NOTE: we therefore measure credit demand within market, underlying market conditions, and the implicit effect of bank policies)
-# Creating an aggregated dataset
+# NOTE: we therefore measure credit demand within market, underlying market conditions, and the implicit effect of bank policies
+# Create an aggregated dataset
 dat_NewLoans_Aggr <- datCredit_real[, list(NewLoans_Aggr_Prop = sum(Age_Adj==1, na.rm=T)/.N), by=list(Date)]
 
 # Merging the credit dataset with the aggregated dataset
@@ -97,6 +98,7 @@ cat((length(which(results_missingness > 0)) == 0) %?% "SAFE: No missingness, fus
        "WARNING: Missingness in certain aggregated fields detected, fusion compromised.\n")
 describe(datCredit_real$NewLoans_Aggr_Prop);
 ### RESULTS: Variable has mean of 0.0071 vs median of 0.007
+
 # clean-up
 rm(dat_NewLoans_Aggr, list_merge_variables, results_missingness)
 
@@ -120,19 +122,25 @@ sum(datCredit_real$ExclusionID > 0) == 0 # check - success
 sum(datCredit_real$DefaultStatus1 == 1 | datCredit_real$WOff_Ind == 1 | datCredit_real$EarlySettle_Ind == 1) == 0; gc() # check - success
 
 # - Remove the columns that were only used for exclusion-purposes
-datCredit_real <- subset(datCredit_real, select = -c(WOff_Ind, EarlySettle_Ind, ExclusionID, DefaultStatus1)); gc()
+datCredit_real <- subset(datCredit_real, select = -c(WOff_Ind, EarlySettle_Ind, ExclusionID)); gc()
+
+# - Save to disk (zip) for quick disk-based retrieval later
+pack.ffdf(paste0(genPath, "creditdata_final4a"), datCredit_real)
 
 
 
 
-# ------- 3. Fusing credit with macroeconomic information (only repo rate)
+# ------- 3. Fusing credit with macroeconomic information (only repo rate and inflation)
+
+# - Confirm prepared datasets are loaded into memory
+if (!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4a"), tempPath)
 if (!exists('dat_SICR_MVs')) unpack.ffdf(paste0(genPath,"datSICR_MVs"), tempPath)
 
 # - Find intersection between fields in the credit dataset and the macroeconomic dataset
 (overlap_flds <- intersect(colnames(datCredit_real), colnames(dat_SICR_MVs))) # no overlapping fields except Date
 
-# - Filter for repo as we only want to compute the interest rate margin here
-dat_SICR_MVs <- subset(dat_SICR_MVs, select = c(Date, M_Repo_Rate))
+# - Filter for repo rate and inflation for feature engineering
+dat_SICR_MVs <- subset(dat_SICR_MVs, select = c(Date, M_Repo_Rate, M_Inflation_Growth))
 
 # - Merge on Date by performing a left-join
 datCredit_real <- merge(datCredit_real, dat_SICR_MVs, by="Date", all.x=T); gc()
@@ -149,7 +157,8 @@ cat((length(which(results_missingness > 0)) == 0) %?% "SAFE: No missingness, fus
 # confirmed, no missing values
 
 # - Clean-up
-rm(dat_SICR_MVs, list_merge_variables, results_missingness); gc()
+# NOTE: MV-dataset is retained for feature engineering later
+rm(list_merge_variables, results_missingness); gc()
 
 
 
@@ -206,15 +215,15 @@ datCredit_real[, value_ind_ccm_worst_arrears_24m := ifelse(is.na(ccm_worst_arrea
 
 # --- Check the missingness of the variables
 # If they are more than 50% missing - remove
-table(datCredit_real$value_ind_slc_pmnt_method) %>% prop.table()              # missingness: 10.36% - keep the variable (categorical)
-table(datCredit_real$value_ind_slc_days_excess) %>% prop.table()              # missingness: 69.72% - discard the variable
-table(datCredit_real$value_ind_slc_acct_pre_lim_perc) %>% prop.table()        # missingness: 10.36% - keep the variable (numeric) 
-table(datCredit_real$value_ind_slc_acct_roll_ever_24) %>% prop.table()        # missingness: 10.37% - keep the variable (numeric + delinquency theme)     
-table(datCredit_real$value_ind_slc_acct_arr_dir_3) %>% prop.table()           # missingness: 10.36% - keep the variable (categorical + delinquency theme)        
-table(datCredit_real$value_ind_slc_acct_prepaid_perc_dir_12) %>% prop.table() # missingness: 10.36% - keep the variable (numeric)
+table(datCredit_real$value_ind_slc_pmnt_method) %>% prop.table()              # missingness: 10.37% - keep the variable (categorical)
+table(datCredit_real$value_ind_slc_days_excess) %>% prop.table()              # missingness: 69.74% - discard the variable
+table(datCredit_real$value_ind_slc_acct_pre_lim_perc) %>% prop.table()        # missingness: 10.37% - keep the variable (numeric) 
+table(datCredit_real$value_ind_slc_acct_roll_ever_24) %>% prop.table()        # missingness: 10.38% - keep the variable (numeric + delinquency theme)     
+table(datCredit_real$value_ind_slc_acct_arr_dir_3) %>% prop.table()           # missingness: 10.37% - keep the variable (categorical + delinquency theme)        
+table(datCredit_real$value_ind_slc_acct_prepaid_perc_dir_12) %>% prop.table() # missingness: 10.37% - keep the variable (numeric)
 table(datCredit_real$value_ind_ccm_ute_lvl_40_cnt_24m) %>% prop.table()       # missingness: 84.77% - discard the variable   
-table(datCredit_real$value_ind_ccm_worst_arrears_6m) %>% prop.table()         # missingness: 84.87% - discard the variable    
-table(datCredit_real$value_ind_ccm_worst_arrears_24m) %>% prop.table()        # missingness: 63.75% - discard the variable
+table(datCredit_real$value_ind_ccm_worst_arrears_6m) %>% prop.table()         # missingness: 84.55% - discard the variable    
+table(datCredit_real$value_ind_ccm_worst_arrears_24m) %>% prop.table()        # missingness: 63.74% - discard the variable
 
 # - Remove the variables that have missingness > 50% 
 suppressWarnings( datCredit_real[, `:=`(value_ind_slc_days_excess = NULL, slc_days_excess = NULL, 
@@ -282,7 +291,7 @@ cat(( datCredit_real[is.na(slc_acct_roll_ever_24_imputed), .N ] == 0) %?%
 
 # - Percentage-valued direction of prepaid/available funds - current compared to 12 months ago
 describe(datCredit_real$slc_acct_prepaid_perc_dir_12)
-# the 50th percentile is 0 and the 75th percentile is 0.2104, whereas the mean is 19671691. Replace with the median
+# the 50th percentile is 0 and the 75th percentile is 0.2069, whereas the mean is very high at 19.6m (due to outliers). Replace with the median
 datCredit_real[, slc_acct_prepaid_perc_dir_12_imputed := 
                  ifelse(is.na(slc_acct_prepaid_perc_dir_12) | slc_acct_prepaid_perc_dir_12 == "", 
                         median(slc_acct_prepaid_perc_dir_12, na.rm=TRUE), slc_acct_prepaid_perc_dir_12)]
@@ -296,58 +305,51 @@ cat(( datCredit_real[is.na(slc_acct_prepaid_perc_dir_12_imputed), .N ] == 0) %?%
 
 # --- Exploring transformations
 
-# - Log-transformed balance
+# - Log-transformed balance, then treat troublesome values
 datCredit_real[, BalanceLog := log(Balance)]
-check_na_balance <- subset(datCredit_real, is.na(BalanceLog))
-# missing log_balances produced by negative balance amounts
-# fix by assigning zero's
-datCredit_real[, BalanceLog := ifelse(is.na(BalanceLog), 0, BalanceLog)]
-(sum(is.na(datCredit_real$BalanceLog)))==0 # check - success
-# infinite values caused by log(0) - assign zero's
-datCredit_real[, BalanceLog := ifelse(is.infinite(BalanceLog), 0, BalanceLog)]
-sum(is.infinite(datCredit_real$BalanceLog))==0 # check - success
+datCredit_real[, BalanceLog := ifelse(is.na(BalanceLog) | is.infinite(BalanceLog), 0, BalanceLog)]
+# [SANITY CHECK] Check new feature for illogical values
+cat(( datCredit_real[is.na(BalanceLog) | is.infinite(BalanceLog), .N] == 0) %?% 
+      'SAFE: New feature [BalanceLog] has logical values.\n' %:% 
+      'WARNING: New feature [BalanceLog] has illogical values \n' )
 # distributional analysis
 describe(datCredit_real$BalanceLog); hist(datCredit_real$BalanceLog, breaks="FD")
 ### RESULTS: Large spike at zero values with some negative outliers, which skews mean to 11.9 (median: 12.7).
 # However, majority of distribution's bulk is left-skewed between 5 and 15
-rm(check_na_balance)
 
 
-# - Log-transformed receipt
+# - Log-transformed receipt, then treat troublesome values
 datCredit_real[, Receipt_InfLog := log(Receipt_Inf)]
-# check for missings or infinite values
-sum(is.na(datCredit_real$Receipt_InfLog))
-sum(is.infinite(datCredit_real$Receipt_InfLog))
-# there are infinite values assigned - fix by assigning zero's to them
-datCredit_real[, Receipt_InfLog := ifelse(is.infinite(Receipt_InfLog), 0, Receipt_InfLog)]
-sum(is.infinite(datCredit_real$Receipt_InfLog))==0 # check again - success
+datCredit_real[, Receipt_InfLog := ifelse(is.na(Receipt_InfLog) | is.infinite(Receipt_InfLog), 0, Receipt_InfLog)]
+# [SANITY CHECK] Check new feature for illogical values
+cat(( datCredit_real[is.na(Receipt_InfLog) | is.infinite(Receipt_InfLog), .N] == 0) %?% 
+      'SAFE: New feature [Receipt_InfLog] has logical values.\n' %:% 
+      'WARNING: New feature [Receipt_InfLog] has illogical values \n' )
 # distributional analysis
 describe(datCredit_real$Receipt_InfLog); hist(datCredit_real$Receipt_InfLog, breaks="FD")
 ### RESULTS: Despite large spike at zero and some negative outliers, mean of 7.4 (median: 8.3) with a 
 # seemingly normal distribution in shape, between 5 and 11
 
 
-# - Log-transformed further loan amount
+# - Log-transformed further loan amount, then treat troublesome values
 datCredit_real[, FurtherLoan_AmtLog := log(FurtherLoan_Amt)]
-# check for missings or infinite values
-sum(is.na(datCredit_real$FurtherLoan_AmtLog))
-sum(is.infinite(datCredit_real$FurtherLoan_AmtLog))
-# there are infinite values assigned - fix by assigning zero's to them
-datCredit_real[, FurtherLoan_AmtLog := ifelse(is.infinite(FurtherLoan_AmtLog), 0, FurtherLoan_AmtLog)]
-sum(is.infinite(datCredit_real$FurtherLoan_AmtLog))==0 # check again - success
+datCredit_real[, FurtherLoan_AmtLog := ifelse(is.na(FurtherLoan_AmtLog) | is.infinite(FurtherLoan_AmtLog), 0, FurtherLoan_AmtLog)]
+# [SANITY CHECK] Check new feature for illogical values
+cat(( datCredit_real[is.na(FurtherLoan_AmtLog) | is.infinite(FurtherLoan_AmtLog), .N] == 0) %?% 
+      'SAFE: New feature [FurtherLoan_AmtLog] has logical values.\n' %:% 
+      'WARNING: New feature [FurtherLoan_AmtLog] has illogical values \n' )
 # distributional analysis
 describe(datCredit_real$FurtherLoan_AmtLog); hist(datCredit_real$FurtherLoan_AmtLog, breaks="FD")
 ### RESULTS: Distribution is overwhelmed by zero-values, which would likely not be useful in predictive setting.
 
 
-# - Log-transformed redraw amount
+# - Log-transformed redraw amount, then treat troublesome values
 datCredit_real[, Redrawn_AmtLog := log(Redrawn_Amt)]
-# check for missings or infinite values
-sum(is.na(datCredit_real$Redrawn_AmtLog))
-sum(is.infinite(datCredit_real$Redrawn_AmtLog))
-# there are infinite values assigned - fix by assigning zero's to them
-datCredit_real[, Redrawn_AmtLog := ifelse(is.infinite(Redrawn_AmtLog), 0, Redrawn_AmtLog)]
-sum(is.infinite(datCredit_real$Redrawn_AmtLog))==0 # check again - success
+datCredit_real[, Redrawn_AmtLog := ifelse(is.na(Redrawn_AmtLog) | is.infinite(Redrawn_AmtLog), 0, Redrawn_AmtLog)]
+# [SANITY CHECK] Check new feature for illogical values
+cat(( datCredit_real[is.na(Redrawn_AmtLog) | is.infinite(Redrawn_AmtLog), .N] == 0) %?% 
+      'SAFE: New feature [Redrawn_AmtLog] has logical values.\n' %:% 
+      'WARNING: New feature [Redrawn_AmtLog] has illogical values \n' )
 # distributional analysis
 describe(datCredit_real$Redrawn_AmtLog); hist(datCredit_real$Redrawn_AmtLog, breaks="FD")
 ### RESULTS: Distribution is overwhelmed by zero-values, which would likely not be useful in predictive setting.
@@ -435,6 +437,7 @@ cat((datCredit_real[is.na(TimeInDelinqState), .N] == 0) %?% "SAFE: No missingnes
        "WARNING: Missingness detected, [TimeInDelinqState] compromised.\n")
 
 
+
 # --- Delinquency-themed variables on a performance spell-level
 # - Delinquency state number, where each change in g_0 denotes such a "state" that may span several periods during a performance spell
 datCredit_real[!is.na(PerfSpell_Key), PerfSpell_g0_Delinq_Num := cumsum(g0_Delinq_Shift) + 1, by=list(PerfSpell_Key)] # Assign state numbers over each performance spell
@@ -444,7 +447,7 @@ cat(( datCredit_real[is.na(PerfSpell_g0_Delinq_Num),.N]==datCredit_real[is.na(Pe
        'WARNING: New feature [PerfSpell_g0_Delinq_Num] has illogical values \n' )
 
 
-# - State standard deviation on the performance spell level
+# - Calculate standard deviation on the performance spell level
 datCredit_real[!is.na(PerfSpell_Key), PerfSpell_g0_Delinq_SD := sd(g0_Delinq), by=list(PerfSpell_Key)]
 datCredit_real[!is.na(PerfSpell_Key) & is.na(PerfSpell_g0_Delinq_SD), PerfSpell_g0_Delinq_SD := 0] # Assigning an standard deviation of zero to those performance spells that have an single observation
 # [SANITY CHECK] Check new feature for illogical values
@@ -458,11 +461,9 @@ cat( ( datCredit_real[is.na(PerfSpell_g0_Delinq_SD),.N]==datCredit_real[is.na(Pe
 
 # - Condense the payment group
 datCredit_real[, pmnt_method_grp := 
-                 ifelse(slc_pmnt_method == "Debit Order FNB account" | slc_pmnt_method == "Debit Order other bank", 
-                              "Debit Order", slc_pmnt_method)]
-datCredit_real[, pmnt_method_grp := 
-                 ifelse(slc_pmnt_method == "Salary" | slc_pmnt_method == "Suspense", 
-                              "Salary/Suspense", pmnt_method_grp)]
+                case_when(slc_pmnt_method == "Debit Order FNB account" | slc_pmnt_method == "Debit Order other bank" ~ "Debit Order",
+                          slc_pmnt_method == "Salary" | slc_pmnt_method == "Suspense" ~ "Salary/Suspense",
+                          TRUE ~ slc_pmnt_method)]
 # [SANITY CHECK] Check new feature for illogical values
 cat((datCredit_real[is.na(pmnt_method_grp), .N] == 0) %?% 
       'SAFE: New feature [pmnt_method_grp] has logical values.\n' %:% 
@@ -480,8 +481,34 @@ cat((datCredit_real[is.na(InterestRate_Margin), .N] == 0) %?% "SAFE: No missingn
       "WARNING: Missingness detected, [InterestRate_Margin] compromised.\n")
 # safe, no missingness detected
 
-# - Drop the repo rate
-datCredit_real <- subset(datCredit_real, select = -c(M_Repo_Rate))
+
+
+# --- Feature Engineering: Inflating time-sensitive monetary variables to the latest date
+
+# - Getting a range of inflation factors for each date in the sampling window
+date_range <- ceiling_date(unique(datCredit_real$Date), unit="month")-days(1)
+datInflation <- data.table(Date=date_range)
+datInflation[,Inf_Factor:=adjInflation_MV(datMacro=dat_SICR_MVs, time="Date", Inflation_Growth="M_Inflation_Growth", g_start=Date, g_stop = date_range[length(date_range)]), by=Date]
+datCredit_real <- merge(datCredit_real, datInflation, all.x=T, by="Date")
+
+# - [SANITY CHECK]
+cat((anyNA(datCredit_real$Inf_Factor)) %?% paste0('WARNING: Inflation factor(s) is(are) missing for ', unique(datCredit_real[is.na(Inf_Factor),Date]), '. \n') %:%
+      'SAFE: Inflation factors created successfully. \n')
+### RESULTS: [Inf_Factor] variables created successfully without any missingness
+
+# - Deflate the relevant variables
+datCredit_real[, Principal_Real := Principal*Inf_Factor]
+datCredit_real[, Balance_Real := Balance*Inf_Factor]
+
+# - [SANITY CHECK]
+cat( (all(anyNA(datCredit_real$Principal_Real), anyNA(datCredit_real$Balance_Real)))
+    %?% paste0('WARNING: Some values of [Principal_Real], [Balance_Real] not created successfully. \n') %:%
+      'SAFE: Variables inflated successfully. \n')
+### RESULTS: Variables created successfully without any missingness
+
+# - Clean up, drop intermediate variables
+datCredit_real[, `:=`(M_Repo_Rate = NULL, M_Inflation_Growth = NULL, g0_Delinq_Shift=NULL)]
+rm(dat_SICR_MVs, date_range, datInflation); gc()
 
 
 
@@ -489,7 +516,4 @@ datCredit_real <- subset(datCredit_real, select = -c(M_Repo_Rate))
 # ------- 6. Pack objects to disk
 
 # - Save to disk (zip) for quick disk-based retrieval later
-datCredit_allInputs <- datCredit_real; rm(datCredit_real); gc() # rename object to preserve parity with modelling scripts
-pack.ffdf(paste0(genPath, "creditdata_allinputs"), datCredit_allInputs)
-gc()
-
+pack.ffdf(paste0(genPath, "creditdata_final4b"), datCredit_real); gc()

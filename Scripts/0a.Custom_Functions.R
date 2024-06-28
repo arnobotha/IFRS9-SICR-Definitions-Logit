@@ -279,6 +279,25 @@ adjInflation <- function(g_start, g_stop) {
   return(compFact)
 }
 
+# -  Adjusting for inflation (Robust version that accepts a macroeconomic dataset)
+# Generating an inflation factor for a given series of yearly inflation growth rates
+# Input:  [datMacro]: The dataset containing the yearly inflation growth rate
+#         [time]: Name of the time/date variable in [datMacro]
+#         [g_start]:  The starting date for the series of inflation growth rates
+#         [g_stop]:   The ending date for the series of inflation growth rates
+# Output: A factor indicating the cumulative inflation over the period starting at [g_start] and ending [g_stop]
+# --- Define custom function for computing inflation/deflation factors
+adjInflation_MV <- function(datMacro, time, Inflation_Growth, g_start, g_stop) {
+  # datMacro=datMV; time="Date"; g_start<-date("2015-02-28"); g_stop<-date("2022-12-31"); Inflation_Growth<-"M_Inflation_Growth"
+  compFact <- as.numeric(datMacro[get(time) >= g_start & get(time) <= g_stop, list(Factor = prod(1 + (get(Inflation_Growth))/12))])
+  return(compFact)
+  # rm(datMacro, time, g_start, g_stop, Inflation_Growth); gc()
+}
+# - Unit test
+# if (!exists('datMV')) unpack.ffdf(paste0(genPath,"datMV"), tempPath)
+# (test <- adjInflation(datMacro=datMV, time="Date", g_start=date("2015-02-28"), g_stop=date("2022-12-31"), Inflation_Growth="M_Inflation_Growth"))
+# rm(datMV, test); gc()
+
 
 # - Dummy-encoding by given formula
 # Converts found categorical/logical fields into numerical dummy variables given a formula
@@ -531,7 +550,90 @@ merge_macro_info <- function (input_dat){
 
 
 
-# ------------------------- VARIABLE IMPORTANCE FOR LOGIT MODELS ---------------------------
+
+# ------------------------- DIAGNOSTIC FUNCTIONS FOR LOGIT MODELS ---------------------------
+
+
+# --- Pseudo R^2 measures for classifiers
+# Calculate a pseudo coefficient of determination (R^2) \in [0,1] for glm assuming binary
+# logistic regression as default, based on the "null deviance" in likelihoods
+# between the candidate model and the intercept-only (or "empty/worst/null") model.
+# NOTE: This generic R^2 is NOT equal to the typical R^2 used in linear regression, i.e., it does
+# NOT explain the % of variance explained by the model; but rather it denotes the %-valued degree
+# to which the candidate's fit can be deemed as "perfect".
+# Implements McFadden's pseudo R^2, Cox-Snell generalised R^2, Nagelkerke's improvement upon Cox-Snell's R^2
+# see https://bookdown.org/egarpor/SSS2-UC3M/logreg-deviance.html ; https://web.pdx.edu/~newsomj/cdaclass/ho_logistic.pdf; 
+# https://statisticalhorizons.com/r2logistic/
+# https://stats.stackexchange.com/questions/8511/how-to-calculate-pseudo-r2-from-rs-logistic-regression
+coefDeter_glm <- function(model) {
+  
+  # - Safety check
+  if (!any(class(model) == "glm")) stop("Specified model object is not of class 'glm' or 'lm'. Exiting .. ")
+  
+  
+  # -- Preliminaries
+  require(scales) # for formatting of results
+  L_full <- logLik(model) # log-likelihood of fitted model, ln(L_M)
+  nobs <- attr(L_full, "nobs") # sample size, same as NROW(model$model)
+  orig_formula <- deparse(unlist(list(model$formula, formula(model), model$call$formula))[[1]]) # model formula
+  orig_call <- model$call; calltype.char <- as.character(orig_call[1]) # original model fitting call specification, used merely for "plumbing"
+  data <- model$model # data matrix used in fitting the model
+  # get weight matrix corresponding to each observation, if applicable/specified, otherwise, this defaults to just the 0/1-valued observations (Y)
+  if (!is.null(model$prior.weights) & length(model$prior.weights) > 0) {
+    weights <- model$prior.weights
+  } else if (!is.null(data$`(weights)`) & length(data$`(weights)` > 0)) {
+    weights <- data$`(weights)`
+  } else weights <- NULL
+  data <- data[, 1, drop=F]; names(data) <- "y"
+  nullCall <- call(calltype.char, formula = as.formula("y ~ 1"), data = data, weights = weights, family = model$family, 
+                   method = model$method, control = model$control, offset = model$offset)
+  L_base <- logLik(eval(nullCall)) # log-likelihood of the null model, ln(L_0)
+  
+  # -- Implement the McFadden pseudo R^2 measure from McFadden1974, R^2 = 1 - log(L_M)/log(L_0)
+  # NOTE: null deviance L_0 plays an analogous role to the residual sum of squares in linear regression, therefore
+  # McFadden's R^2 corresponds to a proportional reduction in "error variance", according to Allison2013 (https://statisticalhorizons.com/r2logistic/)
+  # NOTE2: deviance (L_M) and null deviance (L_0) within a GLM-object is already the log-likelihood since deviance = -2*ln(L_M) by definition
+  # https://stats.stackexchange.com/questions/8511/how-to-calculate-pseudo-r2-from-rs-logistic-regression
+  coef_McFadden <- 1 - model$deviance / model$null.deviance
+  if ( !all.equal(coef_McFadden, as.numeric(1 - (-2*L_full)/(-2*L_base) ) ) ) stop("ERROR: Internal function error in calculating & verifying McFadden's pseudo R^2-measure")
+  
+  
+  # -- Implement Cox-Snell R^2 measure from Cox1983, which according to Allison2013 is more a "generalized" R^2 measure than pseudo,
+  # given that its definition is an "identity" in normal-theory linear regression. Can therefore be used to other regression settings using MLE,
+  # E.g., negative binomial regression for count data or Weibull regression for survival data
+  # Definition: R^2 = 1 - (L_0/L_F)^(2/nobs), but equivalent to below given that L_base = ln(L0) and L_full = ln(L_full)
+  # Why? Since (L_0/L_F)^(2/nobs) can be rewritten as exp[ ln( (L_0/L_F)^(2/nobs) )] which simplifies to exp[ (2/nobs) . ln( L_0/L_F )] given property ln(a^b) = b.ln(a),
+  # finally becoming exp[ (2/nobs) . ( ln( L_0 ) - ln( L_F)) ]  given property ln(a/b) = ln(a) - ln(b).
+  # The below is numerically expedient in avoiding "underflow" memory issues when dealing with large negative log-likelihood values that should rather not be exponentiated.
+  # Source: DescTools::PseudoR2 function in DescTools package
+  coef_CoxSnell <- as.numeric( 1 - exp(2/nobs * (L_base - L_full)) )
+  
+  
+  # -- Implement Nagelkerke R^2 from Nagelkerke1991, which according to Allison2013 improves upon Cox-Snell R^2 by ensuring an upper bound of 1
+  # NOTE: Cox-Snell R^2 has an upper bound of 1 - (L_0)^(2/n), which can be considerably less than 1.
+  # This comes at the cost of reducing the attractive theoretical properties of the Cox-Snell R^2 
+  coef_Nagelkerke <- (1 - exp((model$deviance - model$null.deviance)/nobs))/(1 - exp(-model$null.deviance/nobs))
+  
+  
+  # -- Report results
+  return( data.frame(McFadden=percent(coef_McFadden, accuracy=0.01), CoxSnell=percent(coef_CoxSnell, accuracy=0.01), Nagelkerke=percent(coef_Nagelkerke, accuracy=0.01)) )
+  
+  ### NOTE: All of the above were tested and confirmed to equal the results produced below:
+  # DescTools::PseudoR2(model, c("McFadden", "CoxSnell", "Nagelkerke"))
+  
+  # - cleanup (only relevant whilst debugging this function)
+  rm(model, L_full, L_base, nobs, data, nullCall, orig_formula, orig_call, weights, coef_McFadden, coef_CoxSnell, coef_Nagelkerke)
+}
+# - Unit test
+# install.packages("ISLR"); require(ISLR)
+# datTrain_simp <- data.table(ISLR::Default); datTrain[, `:=`(default=as.factor(default), student=as.factor(student))]
+# logit_model <- glm(default ~ student + balance + income, data=datTrain_simp, family="binomial")
+# coefDeter_glm(logit_model)
+### RESULTS: candidate is 46% (McFadden) better than null-model in terms of its deviance
+
+
+
+# --- Variable importance measures
 # A function for measuring and rank-ordering the variable "importance" given a logit model
 # Three such measures are implemented:
 # 1) standardised coefficients via refitting on Z-scored input space [stdCoef_ZScores]
@@ -546,7 +648,8 @@ merge_macro_info <- function (input_dat){
 #         [pd_plot]:     Should a partial dependence plot be created for each variable
 # Output: A data table containing the variable importance information
 varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.05, impPlot=F, pd_plot=F, chosenFont="Cambria", 
-                            colPalette="BrBG", colPaletteDir=1, plotName=paste0(genFigPath, "VariableImportance_", method,".png"), limitVars=10, dpi=180){
+                            colPalette="BrBG", colPaletteDir=1, plotVersionName="", plotName=paste0(genFigPath, "VariableImportance_", method,"_", plotVersionName,".png"), 
+                            limitVars=10, dpi=180){
   
   # - Unit testing conditions:
   # logit_model <- glm(default ~ student + balance + income, data=datTrain1, family="binomial")
@@ -740,4 +843,100 @@ varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.0
 }
 
 
+
+# --- Residual Deviance measures
+# Perform residual analysis for a glm-model using deviances (difference between predicted probabilities and observed proportions of success)
+# A standard normal distribution approximates the residual deviance distribution for a well-fitted model (assuming logistic regression)
+# Accordingly, min/max residuals should lie within [-3,3], median should be close to 0, and 1st/3rd quantiles 
+# should be similarly in their absolute value.
+# Deviations from these principles indicate strain in the underlying fit of the model
+# see https://library.virginia.edu/data/articles/understanding-deviance-residuals ; https://web.pdx.edu/~newsomj/cdaclass/ho_diagnostics.pdf
+resid_deviance_glm <- function(model, err_Median = 0.025, err_quantiles = 0.05, plotResid=T, inf_degree_significance=0.01) {
+  
+  # - Preliminaries
+  require(scales) # formatting numbers
+  require(dplyr)
+  
+  # - Safety check
+  if (!any(class(model) == "glm")) stop("Specified model object is not of class 'glm' or 'lm'. Exiting .. ")
+  
+  # - testing conditions
+  # model <- logit_model
+  
+  # -- 1a. Using built-in functionality to calculate deviance residuals and summarise them accordingly
+  d_aggr1 <- quantile(residuals(model))
+  
+  # -- 1b. Manual calculation of the above (for verification purposes)
+  # NOTE: this process uses several types of residuals, which we'll illustrate here assuming logistic regression
+  
+  # 0) get predictions and observations (y)
+  p_hat <- predict(model, type = "response"); y <- model$y
+  
+  # 1) raw residuals: the difference between observed values {0,1} and predicted probabilities of belonging to a binary-valued class
+  e <- residuals(model, type = "response") # or simply e = y - p_hat where y is the observed binary-valued outcome \in {0,1} and e \in [-1,1]
+  
+  # 2) Pearson residuals: rescaled version of raw residuals by dividing it with the standard deviation of a binomial distribution (if using logistic regression)
+  r <- e / sqrt(p_hat * (1 - p_hat)) # or simply r <- residuals(model, type = "pearson")
+  
+  # 3) Calculate "hatvalues", which is the "degree to which observation y_i influences fitted/predicted/class-probability \hat{y}_i
+  # NOTE: hatvalue h \in [0,1] is the leverage score for ith observation (related to Mahalanobis distance),defined as
+  # h = x_i^T . (X^T . X)^{-1} . x_i  , where x_i is the ith observation and X is the n x p design matrix whose rows correspond to observations (input space) and columns are variables
+  # see https://en.wikipedia.org/wiki/Leverage_(statistics)#Definition_and_interpretations ; https://stats.stackexchange.com/questions/551302/developing-leverage-statistics-manually-in-r
+  # see https://pj.freefaculty.org/guides/stat/Regression/RegressionDiagnostics/OlsHatMatrix.pdf
+  # High hat-values indicate greater leverage/influence of the associated observation relative to the mean
+  # NOTE: Calculating hatvalues is conceptually easy, e.g., X <- model.matrix(model); h <- diag(X %*% solve(t(X) %*% X) %*% t(X))
+  # However, singular matrices (non-invertible, i.e., where det(cov(X)) == 0) can hinder its calculation in practice, particulalry when trying to invert "t(X) %*% X" using "solve()"
+  # This can be mitigated by applying a small adjustment within the "solve()"-part using ridge regression, or by the LASSO;
+  # However, this is exhaustive and we rather rely on R's built-in functionality that already caters exhaustively for these issues.
+  h <- hatvalues(model)
+  # Influential observations can be highlighted for those cases 
+  # see https://stackoverflow.com/questions/9476475/how-to-produce-leverage-stats
+  inf_degree <- NROW(h[h> (3 * mean(h))]) / NROW(h)
+  inf_degree_max <- max(h) / mean(h)
+  
+  # 4) standardised/studentized Pearson residuals: adjusting the Pearson residual for leverage (or "hat values")
+  # NOTE: These residuals are usually standard normally distributed, which can be a useful diagnostic in and of itself; see Agresti2002
+  rs <- r / sqrt(1 - h) # or simply rs <- rstandard(m, type = "pearson") 
+  
+  # 5) deviance residuals (finally): derived from the likelihood ratio test when comparing a candidate to a saturated/full/perfect model (such that p coefficients = n observations)
+  d <- sign(e)*sqrt(-2*(y*log(p_hat) + (1 - y)*log(1 - p_hat)) ) # or simply as residuals(model)
+  d_aggr <- quantile(d)
+  # [SANITY CHECK] Distribution summary of residual deviances should agree with each other, respective to both methods by which they are calculated.
+  cat( all.equal(d_aggr1, d_aggr) %?% 'SAFE: Both methods by which residual deviances are calculated agree with each other in result.\n' %:% 
+         'WARNING: The methods by which residual deviances are calculated yield different results.\n')
+  
+  # -- 2. Reporting results
+  cat( (inf_degree <= inf_degree_significance) %?% 
+         paste0('SAFE: The degree of influential cases is low at ', percent(inf_degree, accuracy=0.1), ' where hatvalues h > (3*mean(h)) is true.\n---------\n') %:%
+         paste0('WARNING: High degree of influential cases at ', percent(inf_degree, accuracy=0.1), ' where hatvalues h > (3*mean(h)) is true. \n\tAlso, max(hatvalue) / mean(hatvalue) = ', 
+                comma(inf_degree_max), '; whereas rule-of-thumb is 3.\n---------\n') )
+  cat("Residual deviance (difference between observed and predicted; smaller = better):", comma(sum(d^2)), '\n---------\n')
+  # [DIAGNOSTIC] Absolute values of min and max percentiles <= 3 ?
+  cat( (abs(d_aggr[1]) <= 3 & abs(d_aggr[5]) <= 3) %?% 'SAFE: Min/max residual deviances are within expected bounds (<=3 in absolute value); model fit is adequate.\n' %:%
+         'WARNING: Min/max residual deviances are outside expected bounds (<=3 in absolute value); model fit is somewhat strained.\n')
+  # [DIAGNOSTIC] median residual deviance close to 0 ?
+  cat( (abs(d_aggr[3]) <= err_Median) %?% 
+         paste0('SAFE: Median residual deviance (', comma(abs(d_aggr[3]), accuracy=0.01), ') is sufficiently close to zero; model fit is adequate.\n') %:%
+         paste0('WARNING: Median residual deviance (', comma(abs(d_aggr[3]), accuracy=0.01), ') is not zero; model fit is somewhat strained.\n') )
+  # [DIAGNOSTIC] 1st and 3rd percentile is relatively close to one another, indicating a symmetric distribution ?
+  cat( (abs(d_aggr[2]) - abs(d_aggr[4]) <= err_quantiles) %?% 'SAFE: 1st/3rd quantiles of residual deviances are sufficiently close to each in absolute value; model fit is adequate.\n---------\n' %:%
+         'WARNING: 1st/3rd quantiles of residual deviances differ substantially from each other in absolute value; model fit is somewhat strained.\n---------\n' )
+  # [DIAGNOSTIC] Degree to which hat values (leverage scores) exceed a common rule of thumb (> 3 x mean(h))
+  
+  # -- 3. Graph distritubion of residuals
+  if (plotResid) { hist(d, breaks="FD") }
+  
+  return(d_aggr)
+  
+  # -- cleanup (only relevant whilst debugging this function)
+  rm(e,d,p_hat,y,r,rs,err_Median,err_quantiles,model,X,h,inf_degree_significance)
+}
+# - Unit test
+# install.packages("ISLR"); require(ISLR)
+# datTrain <- data.table(ISLR::Default); datTrain[, `:=`(default=as.factor(default), student=as.factor(student))]
+# logit_model <- glm(default ~ student + balance + income, data=datTrain, family="binomial")
+# summary(logit_model)
+# resid_deviance_glm(logit_model)
+### RESULTS: candidate's max residual > 3, which indicates some strain.
+# distributional shape somewhat skew since abs(1st) != abs(3rd) quantiles
 

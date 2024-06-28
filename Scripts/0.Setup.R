@@ -91,30 +91,42 @@ genRawPath <- "C:/Data/"
 
 if (Sys.getenv("USERNAME") == "WRQ") {
   # - Custom path where R-scripts are saved
-  path_cust <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Scripts/"
+  path_cust <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Scripts/"
   
   # - Common path for storing important R-objects as back-up
-  genObjPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Objects/"
+  genObjPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Objects/"
   
   # - Common path for saving important analytics (e.g., sampling)
-  genFigPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/Figures/"
+  genFigPath <- "C:/Users/WRQ/OneDrive - FRG/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Figures/"
   
 } else if (Sys.getenv("USERNAME") == "Arno Botha") {
   # - Custom path where R-scripts are saved
   
-  path_cust <- "E:/WorkLife/Analytix/ResearchDynamic-SICR/Scripts/"
+  path_cust <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Scripts/"
   
   # - Common path for storing important R-objects as back-up
-  genObjPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/Objects/"
+  genObjPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Objects/"
   
   # - Common path for saving important analytics (e.g., sampling)
-  genFigPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/Figures/"
+  genFigPath <- "E:/WorkLife/Analytix/Research/Dynamic-SICR/IFRS9-SICR-Definitions-Logit/Figures/"
   
   # - Common path for saving big data objects
   genPath <- "E:/DataDump/FNB SLC/Dynamic-SICR_Data/"
   
   # - Common path for importing raw data
   genRawPath <- "E:/DataDump/FNB SLC/"
+  
+} else if (Sys.getenv("USERNAME") == "F?????") {
+  # - Custom path where R-scripts are saved
+  
+  # - Custom path where R-scripts are saved
+  path_cust <- ".../IFRS9-SICR-Definitions-Logit/Scripts/"
+  
+  # - Common path for storing important R-objects as back-up
+  genObjPath <- ".../IFRS9-SICR-Definitions-Logit/Objects/"
+  
+  # - Common path for saving important analytics (e.g., sampling)
+  genFigPath <- ".../IFRS9-SICR-Definitions-Logit/Figures/"
   
 } else {
   stop("User-specific paths not set for current user: ", Sys.getenv("USERNAME"), ". Please fix in Setup script (0.Setup.R) before continuing")

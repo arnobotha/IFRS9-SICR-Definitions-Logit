@@ -22,6 +22,14 @@
 # ==============================================================================
 
 
+### AB [2024-06-28: Stuff to propagate across all 27 SICR-modelling scripts:
+# - change start point when loading in file from 'creditdata_allinputs' to 'creditdata_final4c'
+# - replace all instances of 'datCredit_allInputs' with 'datCredit_real'
+# - Update program headers accordingly (especially given name changes of inputs/outputs)
+# - NB: When you get to the last section of each SICR-model script (e.g., "5. Implement the final model and find the optimal cut-off"),
+#       ensure that that all outputs are freshly overwritten, e.g., pROC-objects, all graphs, packable objects. That way,
+#       I need only work on the 4-series of scripts, which loads up these objects from the 3-series.
+
 
 
 # ------ 0. Setup/parameter definition
