@@ -940,3 +940,77 @@ resid_deviance_glm <- function(model, err_Median = 0.025, err_quantiles = 0.05, 
 ### RESULTS: candidate's max residual > 3, which indicates some strain.
 # distributional shape somewhat skew since abs(1st) != abs(3rd) quantiles
 
+
+
+# ------------------------- Generalised Youden Index Function ---------------------------
+# - This function runs an optimisation procedure to find the Generalised Youden Index for a trained model.
+### INPUT:
+# - Trained_Model: the trained classifier for which you want to obtain the optimal cutoff p_c
+# - Train_DataSet: The training dataset (in datatable format) which will be used to find p_c
+# - Target: Character string containing the name of the target variable (target variable should be numeric 0/1)
+# - a: The cost multiple (or ratio) of a false negative relative to a false positive
+### OUTPUT: 
+# - The output of the optimisation procedure; i.e., the optimal cut-off p_c and other information detailing whether the 
+#   algorithm converged.
+
+Gen_Youd_Ind<-function(Trained_Model, Train_DataSet, Target, a){
+  # Trained_Model<-logitMod_Adv
+  # Train_DataSet<-datCredit_train[960000:965000,]
+  # Target<-"DefaultStatus1_lead_12_max"
+  # a<-4
+  
+  require(data.table, DEoptimR)
+  
+  # - ensure given target name does not coincide with the intended name used internally in this function
+  # If not, then ensure the field doesn't already exist
+  if (Target != "Target" & "Target" %in% colnames(Train_DataSet)){
+    Train_DataSet[, Target := NULL]
+  }
+  
+  # - ensure target variable is numeric (and not factor)
+  if (class(Train_DataSet[,get(Target)]) == "factor") {
+    Train_DataSet[, Target := as.numeric(levels(get(Target)))[get(Target)]]
+  } else Train_DataSet[, Target := get(Target)]
+  
+  # - Calculate Prevalence Rate q1
+  q1 <- mean(Train_DataSet$Target,na.rm=TRUE)
+  
+  # - Objective Function to be minimized (negative the function to be maximized)
+  GYI_a <- function(pc){
+    Train_DataSet[, prob_vals := predict(Trained_Model, Train_DataSet, type="response")] # Obtain predicted probabilities for the model
+    Train_DataSet[, class_vals := ifelse(prob_vals<=pc,0,1)] # Dichotomise the probability scores according to the cutoff pc
+    
+    # - Safety Check for missingness in predictions
+    if(anyNA(Train_DataSet[,list(prob_vals,class_vals)])){
+      stop("Missingness in predicted probabilities, Exit function...")
+    }
+    
+    # - Calculate the True Positive Rate & True Negative Rate given pc
+    TPR<-sum(Train_DataSet[,class_vals]==1 & Train_DataSet[,Target==1], na.rm=TRUE)/Train_DataSet[Target==1,.N]
+    TNR<-sum(Train_DataSet[,class_vals]==0 & Train_DataSet[,Target==0], na.rm=TRUE)/Train_DataSet[Target==0,.N]
+    
+    # - Clean Up the Created Input Fields
+    Train_DataSet[, prob_vals := NULL]
+    Train_DataSet[, class_vals := NULL]
+    
+    # - The function to minimize
+    -(TPR + (1-q1)/(a*q1)*TNR - 1)
+  }
+  # - Run Optimisation via a Differential Evolution algorithm
+  results <- JDEoptim(lower=0, upper=1, fn=GYI_a)
+  #optim(par=c(0,1), fn=GYI_a, lower=0, upper=1)
+  
+  return(list(cutoff=results$par, value=results$value, iterations=results$iter))
+}
+# # - Unit test
+# require(ISLR); require(OptimalCutpoints); require(DEoptimR) # Robust Optimisation Tool		
+# datTrain <- data.table(ISLR::Default); datTrain[, `:=`(default=ifelse(default=="No",0,1), student=as.factor(student))]
+# datTrain[, default_fac := as.factor(default)]
+# logit_model <- glm(default ~ student + balance + income, data=datTrain, family="binomial")
+# # - optimal.cutpoints function from OptimalCutpoints
+# datTrain[, prob_vals := predict(logit_model, type="response")]
+# opti<-optimal.cutpoints(X = "prob_vals", status = "default", tag.healthy = 0, methods = "Youden", data = datTrain, ci.fit = FALSE, trace = FALSE, control = control.cutpoints(CFP=1, CFN=4, generalized.Youden=T))
+# summary(opti) # Optimal Cut-off = 0.2127908; Optimal Criterion = 6.6734234
+# # - Custom Gen_Youd_Ind function
+#Gen_Youd_Ind(logit_model,datTrain,"default",4) # Optimal Cut-off = 0.2120438; Optimal Criterion = -6.673423
+#Gen_Youd_Ind(logit_model,datTrain,"default_fac",4) # Optimal Cut-off = 0.2120438; Optimal Criterion = -6.673423
