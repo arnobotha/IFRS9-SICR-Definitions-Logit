@@ -12,7 +12,7 @@
 #   - 2d.Data_Fusion.R
 
 # -- Inputs:
-#   - datCredit_allInputs | enriched credit dataset (script 2d)
+#   - creditdata_final4c | enriched credit dataset (script 2d)
 
 # -- Outputs:
 #   - inputs_chosen, logit_model_chosen | Chosen input variables + trained model
@@ -21,14 +21,6 @@
 #   - <analytics>
 # ==============================================================================
 
-
-### AB [2024-06-28: Stuff to propagate across all 27 SICR-modelling scripts:
-# - change start point when loading in file from 'creditdata_allinputs' to 'creditdata_final4c'
-# - replace all instances of 'datCredit_allInputs' with 'datCredit_real'
-# - Update program headers accordingly (especially given name changes of inputs/outputs)
-# - NB: When you get to the last section of each SICR-model script (e.g., "5. Implement the final model and find the optimal cut-off"),
-#       ensure that that all outputs are freshly overwritten, e.g., pROC-objects, all graphs, packable objects. That way,
-#       I need only work on the 4-series of scripts, which loads up these objects from the 3-series.
 
 
 
@@ -66,14 +58,14 @@ train_prop <- 0.7 # sampling fraction for resampling scheme
 # ------- 1. Remove irrelevant variables
 
 # - Confirm prepared data after exclusions is loaded into memory
-if (!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allinputs"), tempPath)
+if (!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4c"), tempPath)
 
 # - Identify the columns in the dataset
-colnames(datCredit_allInputs)
+colnames(datCredit_real)
 
 # - Remove variables that will not be used in model building
-suppressWarnings( datCredit_allInputs[, `:=`(value_ind_slc_acct_roll_ever_24 = NULL, value_ind_slc_pmnt_method = NULL, value_ind_slc_acct_arr_dir_3 = NULL, 
-                                             value_ind_slc_acct_pre_lim_perc = NULL, value_ind_slc_acct_prepaid_perc_dir_12 = NULL)])
+suppressWarnings( datCredit_real[, `:=`(value_ind_slc_acct_roll_ever_24 = NULL, value_ind_slc_pmnt_method = NULL, value_ind_slc_acct_arr_dir_3 = NULL, 
+                                        value_ind_slc_acct_pre_lim_perc = NULL, value_ind_slc_acct_prepaid_perc_dir_12 = NULL)])
 
 
 
@@ -81,33 +73,33 @@ suppressWarnings( datCredit_allInputs[, `:=`(value_ind_slc_acct_roll_ever_24 = N
 # ------ 2. Define the target event and conduct some data prep
 
 # - Create the SICR-definition based on the parameters
-datCredit_allInputs[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]
-describe(datCredit_allInputs$SICR_def) #ensure there are no missing values and only two distinct values (binary) - success
+datCredit_real[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]
+describe(datCredit_real$SICR_def) #ensure there are no missing values and only two distinct values (binary) - success
 
 # - Look ahead (over k periods) and assign the SICR-event appropriately for each record
-datCredit_allInputs[, SICR_target_event := shift(SICR_def, type='lead', n=p.k), by=list(LoanID)]
+datCredit_real[, SICR_target_event := shift(SICR_def, type='lead', n=p.k), by=list(LoanID)]
 # check whether k-periods have NA for each account
-datCredit_allInputs[, check_SICR_periods := ifelse(is.na(SICR_target_event), 1, 0), ]
+datCredit_real[, check_SICR_periods := ifelse(is.na(SICR_target_event), 1, 0), ]
 # check the number of observations impacted
-(exclusions_missing_periods <- datCredit_allInputs[(check_SICR_periods == 1), .N] / datCredit_allInputs[, .N] * 100)
+(exclusions_missing_periods <- datCredit_real[(check_SICR_periods == 1), .N] / datCredit_real[, .N] * 100)
 # Number of impacted observations: 4.50%
 
 # further checks
-datCredit_allInputs[, sum_SICR_periods := sum(check_SICR_periods), by=list(LoanID)]
-datCredit_allInputs[, flag_SICR_periods := ifelse(sum_SICR_periods < p.k, 1, 0), by=list(LoanID)]
-sum(datCredit_allInputs$flag_SICR_periods == 1)
+datCredit_real[, sum_SICR_periods := sum(check_SICR_periods), by=list(LoanID)]
+datCredit_real[, flag_SICR_periods := ifelse(sum_SICR_periods < p.k, 1, 0), by=list(LoanID)]
+sum(datCredit_real$flag_SICR_periods == 1)
 # study an account to check what is causing the problem
-check_SICR_periods <- subset(datCredit_allInputs, LoanID == unique(datCredit_allInputs[flag_SICR_periods == 1, LoanID])[1])
+check_SICR_periods <- subset(datCredit_real, LoanID == unique(datCredit_real[flag_SICR_periods == 1, LoanID])[1])
 # just seem to be accounts that do not have sufficient history - will be excluded in the next step
 
 # - Discard observations where target has NA, implying insufficient history
-datCredit_allInputs <- subset(datCredit_allInputs, !is.na(SICR_target_event))
-describe(datCredit_allInputs$SICR_target_event)
+datCredit_real <- subset(datCredit_real, !is.na(SICR_target_event))
+describe(datCredit_real$SICR_target_event)
 # checked for missing target events as well as two unique binary events - success
 
 # - Create a copy of the dataset that will be further referred to as dat_SICR_def
-dat_SICR_def <- copy(datCredit_allInputs)
-rm(datCredit_allInputs); gc()
+dat_SICR_def <- copy(datCredit_real)
+rm(datCredit_real); gc()
 
 # - Check the event rate of each class
 # RECORD-LEVEL
@@ -646,7 +638,7 @@ logit_model_all_mc1 <- glm(inputs_all_mc1, data=dat_SICR_def_train_s, family="bi
 # --- 5.1 Final logit model with stabilized input variables across all the definitions
 
 # - Confirm prepared data after exclusions is loaded into memory
-if(!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allinputs"), tempPath)
+if(!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4c"), tempPath)
 
 # - Retain fields based on logit-model corresponding to this definition
 varKeep <- c("LoanID", "Date", "Counter", 
@@ -656,10 +648,10 @@ varKeep <- c("LoanID", "Date", "Counter",
              "BalanceLog", "Term", "InterestRate_Margin", "pmnt_method_grp", 
              "slc_acct_pre_lim_perc_imputed", "PD_ratio"
 )
-datSICR <- subset(datCredit_allInputs, select=varKeep)
+datSICR <- subset(datCredit_real, select=varKeep)
 
 # - Cleanup (Memory optimisation)
-rm(datCredit_allInputs); gc()
+rm(datCredit_real); gc()
 
 # - Create the SICR-definition based on the parameters [Time-consuming step]
 datSICR[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]; gc()
@@ -732,7 +724,6 @@ inputs_chosen <- SICR_target ~ Term + InterestRate_Margin + BalanceLog + TimeInP
 # All variables are statistically significant apart from inflation growth, although inflation growth was purposefully included
 # PD ratio is not statistically significant (p-value of 0.34 and standard error of 0.0010590) as well as inflation growth
 # But all other variables remain statistically significant
-# EO: Include this in the write-up of patterns where we see significance/insignificance
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -749,7 +740,7 @@ datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type
 # - Compute the AUC
 auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_1a_i) # 91.44% (before) vs 91.44% (after)
 auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_1a_i) # 91.31% (before) vs 91.29% (after)
-auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 91.4% (before) vs 91.39% (after)
+auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 91.4% (before) vs 91.4% (after)
 
 
 # --- 5.2 Plot the density of the class probabilities
@@ -785,11 +776,7 @@ cost_fp <- 1; cost_fn <- 6
 
 # - Find optimal cut-offs according to the Generalised Youden's Index measures
 # This requires significant memory, which cannot be handled by the current size of the training dataset
-optimal.cutpoint.GenYouden <- optimal.cutpoints(X = "Prob_chosen_1a_i", status = "SICR_target", tag.healthy = 0, # these are the negatives
-                                                methods = "Youden", data = datSICR_valid, ci.fit = FALSE, conf.level = 0.95, trace = FALSE,
-                                                control = control.cutpoints(CFP=cost_fp, CFN=cost_fn, generalized.Youden=T))
-
-summary(optimal.cutpoint.GenYouden); gc
+optimal.cutpoint.GenYouden <- Gen_Youd_Ind(logit_model_chosen, datSICR_valid, "SICR_target", 6)$cutoff
 
 # - Set final cut-off
 (logistic_cutoff <- max(optimal.cutpoint.GenYouden$Youden$Global$optimal.cutoff$cutoff))
