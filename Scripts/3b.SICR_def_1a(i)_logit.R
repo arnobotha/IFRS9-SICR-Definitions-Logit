@@ -629,7 +629,7 @@ logit_model_all_mc1 <- glm(inputs_all_mc1, data=dat_SICR_def_train_s, family="bi
 (vif_all_mc1 <- vif(logit_model_all_mc1))
 #  M_Repo_Rate and M_Repo_Rate_2 have VIF > 10, but this is expected
 
-
+ 
 
 
 # ------- 5. Implement the final model and find the optimal cut-off
@@ -689,7 +689,7 @@ datSICR_smp <- datSICR %>% group_by(SICR_target, Date) %>% slice_sample(prop=smp
 datSICR_smp <- merge_macro_info(input_dat = datSICR_smp)
 
 # - Filter again for the variables to keep
-varKeep <- c("LoanID", "Date", "Counter", "SICR_target", "ind",
+varKeep <- c("LoanID", "Date", "Counter", "SICR_target", "ind", "SICR_def",
              # Delinquency-theme inputs
              "g0_Delinq", "PerfSpell_Num", "TimeInPerfSpell", "slc_acct_roll_ever_24_imputed", "slc_acct_arr_dir_3",
              # Credit-themed inputs
@@ -764,6 +764,7 @@ ggplot( data=datSICR_valid, aes(x=Prob_chosen_1a_i)) + theme_bw() +
 # - Set misclassification costs for false positives (FP) and false negatives (FN) respectively
 # These are only applicable to cost-sensitive measures later
 cost_fp <- 1; cost_fn <- 6
+cost_ratio <- cost_fn/cost_fp
 # Experimented with [cost_fn] given the underprediction-problem outlined in section 6.3
 # Candidates include 40, 10, 6, 7, 8 ; all of whom gave very high overprediction (decreasingly so for lower cost-values). 
 #  AUC-values remained between 80-83% once discretised.
@@ -776,10 +777,10 @@ cost_fp <- 1; cost_fn <- 6
 
 # - Find optimal cut-offs according to the Generalised Youden's Index measures
 # This requires significant memory, which cannot be handled by the current size of the training dataset
-optimal.cutpoint.GenYouden <- Gen_Youd_Ind(logit_model_chosen, datSICR_valid, "SICR_target", 6)$cutoff
+optimal.cutpoint.GenYouden <- Gen_Youd_Ind(logit_model_chosen, datSICR_valid, "SICR_target", cost_ratio)
 
 # - Set final cut-off
-(logistic_cutoff <- max(optimal.cutpoint.GenYouden$Youden$Global$optimal.cutoff$cutoff))
+(logistic_cutoff <- optimal.cutpoint.GenYouden$cutoff)
 datSICR_train[, Pred_chosen_1a_i := ifelse(Prob_chosen_1a_i >= logistic_cutoff, 1, 0)]
 datSICR_valid[, Pred_chosen_1a_i := ifelse(Prob_chosen_1a_i >= logistic_cutoff, 1, 0)]
 datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
@@ -835,7 +836,7 @@ conf_mat[, negatives := TN + FP]
 
 # - Confirm SICR-dataset is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
-if (!exists('logistic_cutoff')) logistic_cutoff <- 0.12069951
+if (!exists('logistic_cutoff')) logistic_cutoff <- 0.12046
 
 # A few things of concern:
 # 1) Volatility in event rates due to relatively low sampling volumes in validation set

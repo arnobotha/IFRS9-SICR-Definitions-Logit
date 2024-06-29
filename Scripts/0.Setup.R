@@ -59,6 +59,7 @@ require(mlr) # for parallelized SMV-technique and associated tuning tools
 require(parallelMap); require(parallel) # for multithreaded SVM-tuning using the mlr-package
 require(pROC); require(ROCR) # both for conducting ROC-analyses
 require(OptimalCutpoints)
+require(DEoptimR)
 
 # for explainability measures
 require(DALEX)
@@ -146,3 +147,5 @@ source(paste0(path_cust,"0b.findOptimalCutoff.R"))
 
 # - Compile Delinquency Calculation Functions (CD, MD/DoD)
 source(paste0(path_cust,'DelinqM.R'))
+
+#rm(list=ls())
