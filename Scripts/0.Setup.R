@@ -116,17 +116,17 @@ if (Sys.getenv("USERNAME") == "WRQ") {
   # - Common path for importing raw data
   genRawPath <- "E:/DataDump/FNB SLC/"
   
-} else if (Sys.getenv("USERNAME") == "F?????") {
+} else if (Sys.getenv("USERNAME") == "f5361079") {
   # - Custom path where R-scripts are saved
   
   # - Custom path where R-scripts are saved
-  path_cust <- ".../IFRS9-SICR-Definitions-Logit/Scripts/"
+  path_cust <- "C:/Users/F5361079/GitHub/IFRS9-SICR-Definitions-Logit/Scripts/"
   
   # - Common path for storing important R-objects as back-up
-  genObjPath <- ".../IFRS9-SICR-Definitions-Logit/Objects/"
+  genObjPath <- "C:/Users/F5361079/GitHub/IFRS9-SICR-Definitions-Logit/Objects/"
   
   # - Common path for saving important analytics (e.g., sampling)
-  genFigPath <- ".../IFRS9-SICR-Definitions-Logit/Figures/"
+  genFigPath <- "C:/Users/F5361079/GitHub/IFRS9-SICR-Definitions-Logit/Figures/"
   
 } else {
   stop("User-specific paths not set for current user: ", Sys.getenv("USERNAME"), ". Please fix in Setup script (0.Setup.R) before continuing")
