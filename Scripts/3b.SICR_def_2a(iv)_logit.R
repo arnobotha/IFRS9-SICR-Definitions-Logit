@@ -12,7 +12,7 @@
 #   - 2d.Data_Fusion.R
 
 # -- Inputs:
-#   - datCredit_allInputs | enriched credit dataset (script 2d)
+#   - datCredit_real | enriched credit dataset (script 2d)
 
 # -- Outputs:
 #   - inputs_chosen, logit_model_chosen | Chosen input variables + trained model
@@ -42,19 +42,28 @@ SICR_label <- "2a(iv)"
 chosenFont <- "Cambria"
 dpi <- 250
 
+# - Field names
+stratifiers <- c("SICR_target_event", "Date") # Must at least include target variable used in graphing event rate
+targetVar <- "SICR_target_event"
+timeVar <- "Date"
+
+# - Subsampling & resampling parameters
+smp_size <- 1000000 # fixed size of downsampled set
+train_prop <- 0.7 # sampling fraction for resampling scheme
+
 
 
 
 # ------- 1. Remove irrelevant variables
 
 # - Confirm prepared data after exclusions is loaded into memory
-if (!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allinputs"), tempPath)
+if (!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4c"), tempPath)
 
 # - Identify the columns in the dataset
-colnames(datCredit_allInputs)
+colnames(datCredit_real)
 
 # - Remove variables that will not be used in model building
-suppressWarnings( datCredit_allInputs[, `:=`(slc_past_due_amt = NULL, DefaultStatus1 = NULL, WOff_Ind = NULL, 
+suppressWarnings( datCredit_real[, `:=`(slc_past_due_amt = NULL, DefaultStatus1 = NULL, WOff_Ind = NULL, 
                                              EarlySettle_Ind = NULL, ExclusionID = NULL, FurtherLoan_AmtLog = NULL,
                                              Redrawn_AmtLog = NULL)])
 
@@ -64,33 +73,33 @@ suppressWarnings( datCredit_allInputs[, `:=`(slc_past_due_amt = NULL, DefaultSta
 # ------ 2. Define the target event and conduct some data prep
 
 # - Create the SICR-definition based on the parameters
-datCredit_allInputs[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]
-describe(datCredit_allInputs$SICR_def) #ensure there are no missing values and only two distinct values (binary) - success
+datCredit_real[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]
+describe(datCredit_real$SICR_def) #ensure there are no missing values and only two distinct values (binary) - success
 
 # - Look ahead (over k periods) and assign the SICR-event appropriately for each record
-datCredit_allInputs[, SICR_target_event := shift(SICR_def, type='lead', n=p.k), by=list(LoanID)]
+datCredit_real[, SICR_target_event := shift(SICR_def, type='lead', n=p.k), by=list(LoanID)]
 # check whether k-periods have NA for each account
-datCredit_allInputs[, check_SICR_periods := ifelse(is.na(SICR_target_event), 1, 0), ]
+datCredit_real[, check_SICR_periods := ifelse(is.na(SICR_target_event), 1, 0), ]
 # check the number of observations impacted
-(exclusions_missing_periods <- datCredit_allInputs[(check_SICR_periods == 1), .N] / datCredit_allInputs[, .N] * 100)
+(exclusions_missing_periods <- datCredit_real[(check_SICR_periods == 1), .N] / datCredit_real[, .N] * 100)
 # Number of impacted observations: 16.85%
 
 # further checks
-datCredit_allInputs[, sum_SICR_periods := sum(check_SICR_periods), by=list(LoanID)]
-datCredit_allInputs[, flag_SICR_periods := ifelse(sum_SICR_periods < p.k, 1, 0), by=list(LoanID)]
-sum(datCredit_allInputs$flag_SICR_periods == 1)
+datCredit_real[, sum_SICR_periods := sum(check_SICR_periods), by=list(LoanID)]
+datCredit_real[, flag_SICR_periods := ifelse(sum_SICR_periods < p.k, 1, 0), by=list(LoanID)]
+sum(datCredit_real$flag_SICR_periods == 1)
 # study an account to check what is causing the problem
-check_SICR_periods <- subset(datCredit_allInputs, LoanID == unique(datCredit_allInputs[flag_SICR_periods == 1, LoanID])[1])
+check_SICR_periods <- subset(datCredit_real, LoanID == unique(datCredit_real[flag_SICR_periods == 1, LoanID])[1])
 # just seem to be accounts that do not have sufficient history - will be excluded in the next step
 
 # - Discard observations where target has NA, implying insufficient history
-datCredit_allInputs <- subset(datCredit_allInputs, !is.na(SICR_target_event))
-describe(datCredit_allInputs$SICR_target_event)
+datCredit_real <- subset(datCredit_real, !is.na(SICR_target_event))
+describe(datCredit_real$SICR_target_event)
 # checked for missing target events as well as two unique binary events - success
 
 # - Create a copy of the dataset that will be further referred to as dat_SICR_def
-dat_SICR_def <- copy(datCredit_allInputs)
-rm(datCredit_allInputs); gc()
+dat_SICR_def <- copy(datCredit_real)
+rm(datCredit_real); gc()
 
 # - Check the event rate of each class
 # RECORD-LEVEL
@@ -130,25 +139,30 @@ rm(check_SICR_periods); gc()
 # Therefore, subsample the train and test datasets to have 1 million observations in total
 
 # - Firstly, resample 1000000 observations of the data - two-way stratified dataset by SICR-event and date
-set.seed(1) # ensure that we get the same split each time
-smp_size <- 1000000 # we want a million observations from the population
-smp_percentage <- smp_size/nrow(dat_SICR_def)
-dat_SICR_def_resample <- stratified(dat_SICR_def, c("SICR_target_event", "Date"), smp_percentage)
-# - check representativeness | proportions should be similar
-table(dat_SICR_def_resample$SICR_target_event) %>% prop.table() #success
-rm(dat_SICR_def); gc()
+smp_perc <- smp_size / ( dat_SICR_def[complete.cases(mget(stratifiers)), mget(stratifiers)][,.N] ) # Implied sampling fraction for downsampling step
 
-# - Resample the smaller dataset into 70% train and 30% test
-dat_SICR_def_resample[, ind := 1:.N]
-set.seed(1) # ensure that we get the same split each time
-dat_SICR_def_train_s <- stratified(dat_SICR_def_resample, c("SICR_target_event", "Date"), 0.7)
-vec_SICR_def_train <- pull(dat_SICR_def_train_s, "ind") # identify the observations in the training dataset
-dat_SICR_def_valid_s <- dat_SICR_def_resample[!(dat_SICR_def_resample$ind %in% vec_SICR_def_train),]
+# - Downsample data into a set with a fixed size (using stratified sampling) before implementing resampling scheme
+set.seed(1)
+dat_SICR_def_resample <- dat_SICR_def %>% drop_na(all_of(stratifiers)) %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=smp_perc) %>% as.data.table()
+cat( (dat_SICR_def_resample[is.na(get(targetVar)), .N] == 0) %?% 'SAFE: No missingness in target variable.\n' %:% 
+       'WARNING: Missingness detected in target variable.\n')
+# safe, not missings
+
+# - Merge the macros on
+dat_SICR_def_resample <- merge_macro_info(input_dat = dat_SICR_def_resample)
+
+# - Apply basic cross-validation resampling scheme with 2-way stratified sampling
+dat_SICR_def_resample[, Ind := 1:.N] # prepare for resampling scheme
+
+# - Implement resampling scheme using given main sampling fraction
+set.seed(1)
+dat_SICR_def_train_s <- dat_SICR_def_resample %>% group_by(across(all_of(stratifiers))) %>% slice_sample(prop=train_prop) %>% as.data.table()
+dat_SICR_def_valid_s <- subset(dat_SICR_def_resample, !(Ind %in% dat_SICR_def_train_s$Ind)) %>% as.data.table()
+
 # - Clean-up
-rm(vec_SICR_def_train); gc()
-dat_SICR_def_resample[, ind := NULL]
-dat_SICR_def_train_s[, ind := NULL]
-dat_SICR_def_valid_s[, ind := NULL]
+dat_SICR_def_resample[, Ind := NULL]
+dat_SICR_def_train_s[, Ind := NULL]
+dat_SICR_def_valid_s[, Ind := NULL]
 
 # - Check the event rate of the training and validation data sets to ensure the SICR-events are balanced
 table(dat_SICR_def_train_s$SICR_target_event) %>% prop.table()
@@ -638,7 +652,7 @@ logit_model_all_mc1 <- glm(inputs_all_mc1, data=dat_SICR_def_train_s, family="bi
 # --- 5.1 Final logit model with stabilized input variables across all the definitions
 
 # - Confirm prepared data after exclusions is loaded into memory
-if(!exists('datCredit_allInputs')) unpack.ffdf(paste0(genPath,"creditdata_allinputs"), tempPath)
+if(!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4c"), tempPath)
 
 # - Retain fields based on logit-model corresponding to this definition
 varKeep <- c("LoanID", "Date", "Counter", 
@@ -646,15 +660,12 @@ varKeep <- c("LoanID", "Date", "Counter",
              "g0_Delinq", "PerfSpell_Num", "TimeInPerfSpell", "slc_acct_roll_ever_24_imputed", "slc_acct_arr_dir_3",
              # Credit-themed inputs
              "BalanceLog", "InterestRate_Margin", "pmnt_method_grp", 
-             "slc_acct_pre_lim_perc_imputed", 
-             # Macroeconomic-themed inputs
-             "M_Repo_Rate", "M_Inflation_Growth", 
-             "M_DTI_Growth", "M_DTI_Growth_12"
+             "slc_acct_pre_lim_perc_imputed", "PD_ratio"
 )
-datSICR <- subset(datCredit_allInputs, select=varKeep)
+datSICR <- subset(datCredit_real, select=varKeep)
 
 # - Cleanup (Memory optimisation)
-rm(datCredit_allInputs); gc()
+rm(datCredit_real); gc()
 
 # - Create the SICR-definition based on the parameters [Time-consuming step]
 datSICR[, SICR_def := SICR_flag(g0_Delinq, d=p.d, s=p.s), by=list(LoanID)]; gc()
@@ -688,6 +699,22 @@ smp_size <- 250000; smp_percentage <- smp_size/nrow(datSICR)
 set.seed(1)
 datSICR_smp <- datSICR %>% group_by(SICR_target, Date) %>% slice_sample(prop=smp_percentage) %>% as.data.table()
 
+# - Join the macros on the filtered dataset to avoid memory constraints
+datSICR_smp <- merge_macro_info(input_dat = datSICR_smp)
+
+# - Retain fields based on logit-model corresponding to this definition
+varKeep <- c("LoanID", "Date", "Counter", "SICR_target", "ind", "SICR_def",
+             # Delinquency-theme inputs
+             "g0_Delinq", "PerfSpell_Num", "TimeInPerfSpell", "slc_acct_roll_ever_24_imputed", "slc_acct_arr_dir_3",
+             # Credit-themed inputs
+             "BalanceLog", "InterestRate_Margin", "pmnt_method_grp", 
+             "slc_acct_pre_lim_perc_imputed", "PD_ratio",
+             # Macroeconomic-themed inputs
+             "M_Repo_Rate", "M_Inflation_Growth", 
+             "M_DTI_Growth", "M_DTI_Growth_12"
+)
+datSICR_smp <- subset(datSICR_smp, select=varKeep)
+
 # - Implement resampling scheme using 70% as sampling fraction
 set.seed(1)
 datSICR_train <- datSICR_smp %>% group_by(SICR_target, Date) %>% slice_sample(prop=0.7) %>% mutate(Sample="Train") %>% as.data.table()
@@ -703,7 +730,7 @@ table(datSICR_valid$SICR_target) %>% prop.table()
 rm(datSICR); gc()
 
 # - Define model form
-inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + 
+inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + PD_ratio +
                                PerfSpell_Num + g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_Repo_Rate +
                                M_Inflation_Growth + M_DTI_Growth + M_DTI_Growth_12
 
@@ -713,6 +740,9 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
+# Results first without the inclusion of the PD ratio
+# Not all variables are statistically significant
+# PD ratio is not statistically significant (p-value of 0.975170 and standard error of 0.00000000000164942)
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2a_iv := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -720,9 +750,9 @@ datSICR_valid[, Prob_chosen_2a_iv := predict(logit_model_chosen, newdata = datSI
 datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type="response")]
 
 # - Compute the AUC
-auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2a_iv) # 84.10%
-auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2a_iv) # 81.67%
-auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 83.28%
+auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2a_iv) # 84.10% vs 84.11%
+auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2a_iv) # 81.67% vs 81.69%
+auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 83.28% (before and after)
 
 
 # --- 5.2 Plot the density of the class probabilities
@@ -746,6 +776,8 @@ ggplot( data=datSICR_valid, aes(x=Prob_chosen_2a_iv)) + theme_bw() +
 # - Set misclassification costs for false positives (FP) and false negatives (FN) respectively
 # These are only applicable to cost-sensitive measures later
 cost_fp <- 1; cost_fn <- 6
+cost_ratio <- cost_fn/cost_fp
+
 # Experimented with [cost_fn] given the underprediction-problem outlined in section 6.3
 # Candidates include 40, 10, 6, 7, 8 ; all of whom gave very high overprediction (decreasingly so for lower cost-values). 
 #  AUC-values remained between 80-83% once discretised.
@@ -758,14 +790,10 @@ cost_fp <- 1; cost_fn <- 6
 
 # - Find optimal cut-offs according to the Generalised Youden's Index measures
 # This requires significant memory, which cannot be handled by the current size of the training dataset
-optimal.cutpoint.GenYouden <- optimal.cutpoints(X = "Prob_chosen_2a_iv", status = "SICR_target", tag.healthy = 0, # these are the negatives
-                                                methods = "Youden", data = datSICR_valid, ci.fit = FALSE, conf.level = 0.95, trace = FALSE,
-                                                control = control.cutpoints(CFP=cost_fp, CFN=cost_fn, generalized.Youden=T))
-
-summary(optimal.cutpoint.GenYouden); gc
+optimal.cutpoint.GenYouden <- Gen_Youd_Ind(logit_model_chosen, datSICR_valid, "SICR_target", cost_ratio)
 
 # - Set final cut-off
-(logistic_cutoff <- max(optimal.cutpoint.GenYouden$Youden$Global$optimal.cutoff$cutoff))
+(logistic_cutoff <- optimal.cutpoint.GenYouden$cutoff)
 datSICR_train[, Pred_chosen_2a_iv := ifelse(Prob_chosen_2a_iv >= logistic_cutoff, 1, 0)]
 datSICR_valid[, Pred_chosen_2a_iv := ifelse(Prob_chosen_2a_iv >= logistic_cutoff, 1, 0)]
 datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
@@ -821,7 +849,7 @@ conf_mat[, negatives := TN + FP]
 
 # - Confirm SICR-dataset is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
-if (!exists('logistic_cutoff')) logistic_cutoff <- 0.1901649
+if (!exists('logistic_cutoff')) logistic_cutoff <- 0.188729
 
 # A few things of concern:
 # 1) Volatility in event rates due to relatively low sampling volumes in validation set
