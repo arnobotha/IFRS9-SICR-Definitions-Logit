@@ -711,7 +711,7 @@ table(datSICR_valid$SICR_target) %>% prop.table()
 rm(datSICR); gc()
 
 # - Define model form
-inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + #PD_ratio +
+inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + PD_ratio +
                                g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_RealIncome_Growth +
                                M_Repo_Rate + M_Inflation_Growth + M_Emp_Growth + M_Emp_Growth_12 + M_RealIncome_Growth_12
 
@@ -721,6 +721,8 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
+# A lot of the variables are not statistically significant before including PD-ratio
+# PD-ratio is not statistically significant with a p-value of 0.9814 and standard error of 0.000051804
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2c_iv := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -827,7 +829,7 @@ conf_mat[, negatives := TN + FP]
 
 # - Confirm SICR-dataset is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
-if (!exists('logistic_cutoff')) logistic_cutoff <- 0.07435233
+if (!exists('logistic_cutoff')) logistic_cutoff <- 0.4960891
 
 # A few things of concern:
 # 1) Volatility in event rates due to relatively low sampling volumes in validation set
