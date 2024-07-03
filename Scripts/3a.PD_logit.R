@@ -218,5 +218,5 @@ describe(datCredit_real$PD_ratio)
 pack.ffdf(paste0(genPath, "creditdata_final4c"), datCredit_real)
 
 # - Cleanup
-rm(datCredit_smp, datCredit_train, datCredit_valid, g, logitMod_basic, vLabel); gc()
+rm(datCredit_smp, datCredit_train, datCredit_valid, logitMod_basic); gc()
 
