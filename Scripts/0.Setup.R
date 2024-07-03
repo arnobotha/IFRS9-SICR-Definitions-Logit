@@ -58,7 +58,6 @@ require(e1071) # for SVM-technique
 require(mlr) # for parallelized SMV-technique and associated tuning tools
 require(parallelMap); require(parallel) # for multithreaded SVM-tuning using the mlr-package
 require(pROC); require(ROCR) # both for conducting ROC-analyses
-require(OptimalCutpoints)
 require(DEoptimR)
 
 # for explainability measures
@@ -141,11 +140,5 @@ if (Sys.getenv("USERNAME") == "WRQ") {
 # - Load all custom functions defined in a separate R-script
 source(paste0(path_cust,"0a.Custom_Functions.R"))
 
-# - Compile threshold-selection function for transforming a probabilistic logit-model
-# into a discrete classifier
-source(paste0(path_cust,"0b.findOptimalCutoff.R"))
-
 # - Compile Delinquency Calculation Functions (CD, MD/DoD)
 source(paste0(path_cust,'DelinqM.R'))
-
-#rm(list=ls())

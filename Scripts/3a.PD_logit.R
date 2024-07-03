@@ -49,8 +49,11 @@ if (!exists('datCredit_real')) unpack.ffdf(paste0(genPath,"creditdata_final4b"),
 
 # - Remove data where 12-month forward-looking indicator could not have been created due to date restriction
 datCredit_real_PD <- subset(datCredit_real, !is.na(DefaultStatus1_lead_12_max))
-describe(datCredit_real_PD$DefaultStatus1_lead_12_max)
-# confirmed, no missingness
+# - [SANITY CHECK]
+cat( (anyNA(datCredit_real_PD$DefaultStatus1_lead_12_max))
+     %?% paste0('WARNING: [DefaultStatus1_lead_12_max] still contains some missing values. \n') %:%
+       'SAFE: [DefaultStatus1_lead_12_max] has no missing values. \n')
+### RESULTS: no missingness
 
 
 
@@ -88,7 +91,7 @@ table(datCredit_valid$DefaultStatus1_lead_12_max) %>% prop.table()
 # success - the event rates are the same
 
 # - Clean-up
-rm(datCredit_real_PD)
+rm(datCredit_real_PD); gc()
 
 
 
@@ -171,7 +174,7 @@ vLabel <- c("a_Actual"=bquote(italic(A[t])*": Actual event rate"),
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Type, linetype=Type), size=0.4) + 
+    geom_line(aes(colour=Type, linetype=Type), linewidth=0.4) + 
     geom_point(aes(colour=Type, shape=Type), size=1.2) + 
     #annotations
     annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*1.9,
@@ -189,7 +192,7 @@ vLabel <- c("a_Actual"=bquote(italic(A[t])*": Actual event rate"),
 ggsave(g, file=paste0(genFigPath, "TimeGraph_DefaultRate_ActExp.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
 # - Cleanup
-rm(datDefault_graph, port.aggr, port.aggr2); gc()
+rm(datDefault_graph, port.aggr, port.aggr2, g, vLabel); gc()
 
 
 
@@ -202,10 +205,10 @@ datCredit_real[, PD_score := predict(logitMod_basic, newdata = datCredit_real, t
 datCredit_real[, PD_margin := PD_score - PD_score[1], by=list(LoanID)]
 datCredit_real[, PD_ratio := PD_score / PD_score[1], by=list(LoanID)]
 # basic analysis of newly-created variables
-describe(datCredit_real$PD_score)
+describe(datCredit_real$PD_score); hist(datCredit_real$PD_score, breaks="FD")
 describe(datCredit_real$PD_margin)
 describe(datCredit_real$PD_ratio)
-
+### RESULTS: Distributional analysis are reasonable, though heavily right-skewed as expected.
 
 
 

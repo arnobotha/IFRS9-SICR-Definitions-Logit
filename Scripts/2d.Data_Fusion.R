@@ -221,9 +221,9 @@ table(datCredit_real$value_ind_slc_acct_pre_lim_perc) %>% prop.table()        # 
 table(datCredit_real$value_ind_slc_acct_roll_ever_24) %>% prop.table()        # missingness: 10.38% - keep the variable (numeric + delinquency theme)     
 table(datCredit_real$value_ind_slc_acct_arr_dir_3) %>% prop.table()           # missingness: 10.37% - keep the variable (categorical + delinquency theme)        
 table(datCredit_real$value_ind_slc_acct_prepaid_perc_dir_12) %>% prop.table() # missingness: 10.37% - keep the variable (numeric)
-table(datCredit_real$value_ind_ccm_ute_lvl_40_cnt_24m) %>% prop.table()       # missingness: 84.77% - discard the variable   
-table(datCredit_real$value_ind_ccm_worst_arrears_6m) %>% prop.table()         # missingness: 84.55% - discard the variable    
-table(datCredit_real$value_ind_ccm_worst_arrears_24m) %>% prop.table()        # missingness: 63.74% - discard the variable
+table(datCredit_real$value_ind_ccm_ute_lvl_40_cnt_24m) %>% prop.table()       # missingness: 84.78% - discard the variable   
+table(datCredit_real$value_ind_ccm_worst_arrears_6m) %>% prop.table()         # missingness: 84.88% - discard the variable    
+table(datCredit_real$value_ind_ccm_worst_arrears_24m) %>% prop.table()        # missingness: 63.77% - discard the variable
 
 # - Remove the variables that have missingness > 50% 
 suppressWarnings( datCredit_real[, `:=`(value_ind_slc_days_excess = NULL, slc_days_excess = NULL, 
@@ -265,7 +265,7 @@ cat(( sum(datCredit_real$slc_acct_arr_dir_3 == "" | is.na(datCredit_real$slc_acc
 
 # - Prepaid/available funds to limit
 describe(datCredit_real$slc_acct_pre_lim_perc) 
-# the 50th percentile is 0, the 75th percentile is 0.02122, whereas the mean is 0.0959. Replace with the median
+# the 50th percentile is 0, the 75th percentile is 0.02122, whereas the mean is 0.0959. Treat missing values with the median
 datCredit_real[, slc_acct_pre_lim_perc_imputed := 
                  ifelse(is.na(slc_acct_pre_lim_perc) | slc_acct_pre_lim_perc == "", 
                         median(slc_acct_pre_lim_perc, na.rm=TRUE), slc_acct_pre_lim_perc)]
@@ -278,7 +278,7 @@ cat(( datCredit_real[is.na(slc_acct_pre_lim_perc_imputed), .N ] == 0) %?%
 
 # - Number of times an account was in arrears over last 24 months
 describe(datCredit_real$slc_acct_roll_ever_24)
-# more than 80% of the data has a value of 0, the mean is 0.3079. Replace with the mean
+# more than 80% of the data has a value of 0, the mean is 0.3079. Treat missing values with the mean
 datCredit_real[, slc_acct_roll_ever_24_imputed := 
                  ifelse(is.na(slc_acct_roll_ever_24) | slc_acct_roll_ever_24 == "", 
                         mean(slc_acct_roll_ever_24, na.rm=TRUE), slc_acct_roll_ever_24)]
@@ -416,7 +416,7 @@ datCredit_real[is.na(g0_Delinq_Shift), g0_Delinq_Shift := 0] # All first observa
 cat((datCredit_real[is.na(g0_Delinq_Shift), .N] == 0) %?% "SAFE: No missingness, [g0_Delinq_Shift] created successfully.\n" %:%
        "WARNING: Missingness detected, [g0_Delinq_Shift] compromised.\n")
 datCredit_real$g0_Delinq_Shift %>% table() %>% prop.table()
-### RESULT: 96.05% of the records had no change in their delinquency level from their associated previous record.
+### RESULT: 96.715% of the records had no change in their delinquency level from their associated previous record.
 
 
 # - Delinquency state number, where each change in g_0 denotes such a "state" that may span several periods
@@ -424,7 +424,7 @@ datCredit_real[, g0_Delinq_Num := cumsum(g0_Delinq_Shift) + 1, by=list(LoanID)] 
 cat((datCredit_real[is.na(g0_Delinq_Num), .N] == 0) %?% "SAFE: No missingness, [g0_Delinq_Num] created successfully.\n" %:%
        "WARNING: Missingness detected, [g0_Delinq_Num] compromised.\n")
 describe(datCredit_real$g0_Delinq_Num)
-### RESULT: Mean state number of 3.28 across all rows; median: 1; max of 100. 
+### RESULT: Mean state number of 2.547 across all rows; median: 1; max of 75 
 # This high max suggests outlier-accounts with rapid and frequent changes in g0
 
 
