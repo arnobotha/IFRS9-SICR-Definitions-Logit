@@ -52,7 +52,6 @@ require(gridExtra)
 
 #for modelling
 require(car)
-require(prediction)
 require(MASS) # for stepAIC() for stepwise regression
 require(e1071) # for SVM-technique
 require(mlr) # for parallelized SMV-technique and associated tuning tools
