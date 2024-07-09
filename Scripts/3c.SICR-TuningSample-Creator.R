@@ -26,12 +26,12 @@
 # ----- 0. Setup
 
 # - Load all custom functions defined in a separate R-script
-p.k <- 6
-p.s <- 2
+p.k <- 3
+p.s <- 1
 p.d <- 1
 
 # - Define SICR-definition label
-SICR_label <- "1b(ii)"
+SICR_label <- "1a(i)"
 
 # - Tuning sample size in observations
 tuneSize <- 45000
@@ -47,7 +47,7 @@ confLevel <- 0.95
 if (!exists('datSICR')) unpack.ffdf(paste0(genPath,"datSICR_", SICR_label), tempPath)
 
 # - Downsample data into a fixed subsample before implementing resampling scheme
-smp_size <- 1500000; smp_percentage <- smp_size/nrow(datSICR)
+smp_size <- 250000; smp_percentage <- smp_size/nrow(datSICR)
 set.seed(1,kind="Mersenne-Twister")
 datSICR_smp <- datSICR %>% group_by(SICR_target, Date) %>% slice_sample(prop=smp_percentage) %>% as.data.table()
 
@@ -108,8 +108,8 @@ fill.v <- brewer.pal(10, "Set2")[c(1,2)]
                           sprintf("%.0f", datStrata_aggr$StratumSize_Min))) +     
   # facets & scale options
   facet_grid(Facet_label ~ .) + 
-  scale_colour_manual(name="SICR target", values=col.v) + 
-  scale_fill_manual(name="SICR target", values=fill.v) + 
+  scale_colour_manual(name=bquote("SICR-outcome "*italic(Y[it])), values=col.v) + 
+  scale_fill_manual(name=bquote("SICR-outcome "*italic(Y[it])), values=fill.v) + 
   scale_y_continuous(breaks=pretty_breaks(), label=comma) + 
   scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y") )
 

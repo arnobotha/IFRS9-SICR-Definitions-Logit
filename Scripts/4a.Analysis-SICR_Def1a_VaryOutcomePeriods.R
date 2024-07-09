@@ -28,13 +28,13 @@
 # ------ 1. Performance measure analysis across SICR-definitions
 
 # - Load into memory
-if (!exists('performance_measures_1a_i')) unpack.ffdf(paste0(genPath,"performance_measures_1a(i)"), tempPath)
-if (!exists('performance_measures_1a_ii')) unpack.ffdf(paste0(genPath,"performance_measures_1a(ii)"), tempPath)
-if (!exists('performance_measures_1a_iii')) unpack.ffdf(paste0(genPath,"performance_measures_1a(iii)"), tempPath)
-if (!exists('performance_measures_1a_iv')) unpack.ffdf(paste0(genPath,"performance_measures_1a(iv)"), tempPath)
-if (!exists('performance_measures_1a_v')) unpack.ffdf(paste0(genPath,"performance_measures_1a(v)"), tempPath)
-if (!exists('performance_measures_1a_vi')) unpack.ffdf(paste0(genPath,"performance_measures_1a(vi)"), tempPath)
-if (!exists('performance_measures_1a_vii')) unpack.ffdf(paste0(genPath,"performance_measures_1a(vii)"), tempPath)
+if (!exists('performance_measures_1a_i')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(i)"), tempPath)
+if (!exists('performance_measures_1a_ii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(ii)"), tempPath)
+if (!exists('performance_measures_1a_iii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(iii)"), tempPath)
+if (!exists('performance_measures_1a_iv')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(iv)"), tempPath)
+if (!exists('performance_measures_1a_v')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(v)"), tempPath)
+if (!exists('performance_measures_1a_vi')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(vi)"), tempPath)
+if (!exists('performance_measures_1a_vii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(vii)"), tempPath)
 
 # - Merge datasets together
 performance_measures <- data.table(rbind(performance_measures_1a_i, performance_measures_1a_ii, performance_measures_1a_iii,
@@ -123,7 +123,7 @@ port.aggr <- datSICR_1a[SICR_def==0,list(EventRate = sum(SICR_events, na.rm=T)/.
 describe(port.aggr$SICR_Def)
 
 # - Recast/pivot data in order to create useful summaries across all time series
-port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
 
 # - Calculate useful summaries over rate time series
 stdevs_1a_full <- c(sd(port.aggr2$`1a(i)`, na.rm=T), sd(port.aggr2$`1a(ii)`, na.rm=T), sd(port.aggr2$`1a(iii)`, na.rm=T),
@@ -203,7 +203,7 @@ facet.v <- c("a_ShortTerm"="(a) Shorter outcome periods", "b_LongTerm"="(b) Long
   # overlay maxima
   geom_point(data=datAnnotate, aes(x=Date,y=EventRate,group=SICR_Def,colour=SICR_Def), size=5, shape=1, show.legend=F) +     
   # main line graph with overlaid points
-  geom_line(aes(colour=SICR_Def, linetype=SICR_Def), size=0.2) + 
+  geom_line(aes(colour=SICR_Def, linetype=SICR_Def), linewidth=0.2) + 
   geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
   # facets & scale options
   facet_grid(SICR_Def_Facet ~., scales="free", labeller=labeller(SICR_Def_Facet=as_labeller(facet.v))) + 
@@ -228,7 +228,7 @@ datSummary <- data.table(k=c(3,6,9,12,18,24,36), SICR_Def=c("1a(i)", "1a(ii)", "
         plot.background=element_rect(color="white"),
         plot.margin=unit(c(0,0,0,0), "mm")) + 
   # main line graph with overlaid points
-  geom_line(linetype="dotted", colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+  geom_line(linetype="dotted", colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
   # facets & scale options
   scale_colour_manual(name="", values=col.v, labels=label.v, guide="none") + 
   scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=label.v, guide="none") + 
@@ -245,7 +245,7 @@ datSummary <- data.table(k=c(3,6,9,12,18,24,36), SICR_Def=c("1a(i)", "1a(ii)", "
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(linetype="dotted", colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(linetype="dotted", colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
     scale_colour_manual(name="", values=col.v, labels=label.v, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=label.v, guide="none") + 
@@ -294,7 +294,7 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, size=Aggregate_Type)) + 
+    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, linewidth=Aggregate_Type)) + 
     geom_point(aes(colour=Aggregate_Type, shape=Aggregate_Type, size=Aggregate_Type2)) + 
     # Encircle certain points
     geom_point(data=datGraph_1a.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
@@ -320,7 +320,26 @@ rm(port.aggr, datSICR_1a, datGraph_1a.aggr, g, g2, gmain, g4, port.aggr2, datSum
 
 # ------ 3. ROC-curves across SICR-definitions (Probabilistic) | Varying k-parameter
 
-# --- 1. ROC-analysis using pROC-package
+
+# --- 1. Load each sample into memory and bind together successively
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(i)"), tempPath)
+datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_i, Prob_Score=Prob_chosen_1a_i)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(ii)"), tempPath)
+datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_ii, Prob_Score=Prob_chosen_1a_ii)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iii)"), tempPath)
+datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iii, Prob_Score=Prob_chosen_1a_iii)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iv)"), tempPath)
+datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iv, Prob_Score=Prob_chosen_1a_iv)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(v)"), tempPath)
+datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_v, Prob_Score=Prob_chosen_1a_v)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vi)"), tempPath)
+datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vi, Prob_Score=Prob_chosen_1a_vi)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vii)"), tempPath)
+datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vii, Prob_Score=Prob_chosen_1a_vii)]); rm(datSICR_valid)
+
+
+
+# --- 2. ROC-analysis using pROC-package
 # See https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/
 # Mixed with https://cran.r-project.org/web/packages/ROCit/vignettes/my-vignette.html
 
@@ -328,35 +347,17 @@ rm(port.aggr, datSICR_1a, datGraph_1a.aggr, g, g2, gmain, g4, port.aggr2, datSum
 alpha <- 0.05
 
 # - Create ROC-object | probabilities vs discrete labels
-pROC_obj1a_i_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_i_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_ii_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_ii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_iii_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_iii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_iv_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_iv_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_v_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_v_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_vi_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_vi_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_vii_logit <- roc(formula= Outcome_Act~Prob_Score, data=dat_SICR_def_1a_vii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-
-# - Pack pROC objects (since they are time-consuming to create)
-pack.ffdf(paste0(genPath, "pROC_1a(i)_logit_p"), pROC_obj1a_i_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(ii)_logit_p"), pROC_obj1a_ii_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(iii)_logit_p"), pROC_obj1a_iii_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(iv)_logit_p"), pROC_obj1a_iv_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(v)_logit_p"), pROC_obj1a_v_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(vi)_logit_p"), pROC_obj1a_vi_logit);
-pack.ffdf(paste0(genPath, "pROC_1a(vii)_logit_p"), pROC_obj1a_vii_logit);
-
-# - Ensure objects are loaded into memory (useful when interactively running certain sections of this script)
-if (!exists('pROC_obj1a_i_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(i)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_ii_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(ii)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_iii_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(iii)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_iv_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(iv)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_v_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(v)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_vi_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(vi)_logit_p"), tempPath)
-if (!exists('pROC_obj1a_vii_logit')) unpack.ffdf(paste0(genPath,"pROC_1a(vii)_logit_p"), tempPath)
+pROC_obj1a_i_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a1, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_ii_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a2, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_iii_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a3, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_iv_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a4, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_v_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a5, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_vi_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a6, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_vii_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_1a7, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
 
 
 
-# --- 2. Creating unified ROC-graph
+# --- 3. Creating unified ROC-graph
 # - Prepare graphing parameters
 col.v <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
 ltype.v <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash","solid")
@@ -394,7 +395,7 @@ auc.v <- c(paste0("1a(i)-LR.   AUC: ", sprintf("%.1f",pROC_obj1a_i_logit$auc), "
                   "%; Gini: ", sprintf("%.1f",pROC_obj1a_vi_logit$auc*2-100), "%"),
            paste0("1a(vii)-LR. AUC: ", sprintf("%.1f",pROC_obj1a_vii_logit$auc), "% ± ", sprintf("%.2f",(pROC_obj1a_vii_logit$ci[3]-pROC_obj1a_vii_logit$ci[1])/2),
                   "%; Gini: ", sprintf("%.1f",pROC_obj1a_vii_logit$auc*2-100), "%"))
-legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, text.width=max(-strwidth(auc.v))/2.15, y.intersp=0.65)
+legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Add legend: Line-graph descriptions
 leg.v <- vector("expression",5)
@@ -405,21 +406,42 @@ leg.v[[4]] <- bquote("1a(iv):  Logistic Regression with"~italic(d)==1*","~italic
 leg.v[[5]] <- bquote("1a(v):   Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==18)
 leg.v[[6]] <- bquote("1a(vi):  Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==24)
 leg.v[[7]] <- bquote("1a(vii): Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==36)
-legend(x=83.2, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, text.width=max(-strwidth(leg.v))/2, y.intersp=0.65)
+legend(x=82.6, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Save plot
 dev.copy(png, file=paste0(genFigPath,"ROC_1a_logit_prob_k-values.png"), width=1000, height=1000, res=170, family=chosenFont); dev.off()
 
 # - Cleanup
 rm(pROC_obj1a_i_logit, pROC_obj1a_ii_logit, pROC_obj1a_iii_logit, pROC_obj1a_iv_logit,
-   pROC_obj1a_v_logit, pROC_obj1a_vi_logit, pROC_obj1a_vii_logit); gc()
+   pROC_obj1a_v_logit, pROC_obj1a_vi_logit, pROC_obj1a_vii_logit,
+   datSICR_valid_1a1, datSICR_valid_1a2, datSICR_valid_1a3, datSICR_valid_1a4, datSICR_valid_1a5,
+   datSICR_valid_1a6, datSICR_valid_1a7); gc()
+
 
 
 
 
 # ------ 4. ROC-curves across SICR-definitions (Discrete) | Varying k-parameter
 
-# --- 1. ROC-analysis using pROC-package
+# --- 1. Load each sample into memory and bind together successively
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(i)"), tempPath)
+datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_i, Prob_Score=Prob_chosen_1a_i)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(ii)"), tempPath)
+datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_ii, Prob_Score=Prob_chosen_1a_ii)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iii)"), tempPath)
+datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iii, Prob_Score=Prob_chosen_1a_iii)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iv)"), tempPath)
+datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iv, Prob_Score=Prob_chosen_1a_iv)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(v)"), tempPath)
+datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_v, Prob_Score=Prob_chosen_1a_v)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vi)"), tempPath)
+datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vi, Prob_Score=Prob_chosen_1a_vi)]); rm(datSICR_valid)
+if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vii)"), tempPath)
+datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vii, Prob_Score=Prob_chosen_1a_vii)]); rm(datSICR_valid)
+
+
+
+# --- 2. ROC-analysis using pROC-package
 # See https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/
 # Mixed with https://cran.r-project.org/web/packages/ROCit/vignettes/my-vignette.html
 
@@ -427,35 +449,17 @@ rm(pROC_obj1a_i_logit, pROC_obj1a_ii_logit, pROC_obj1a_iii_logit, pROC_obj1a_iv_
 alpha <- 0.05
 
 # - Create ROC-object | probabilities vs discrete labels
-pROC_obj1a_i_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_i_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_ii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_ii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_iii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_iii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_iv_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_iv_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_v_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_v_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_vi_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_vi_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj1a_vii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=dat_SICR_def_1a_vii_save, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-
-# - Pack pROC objects (since they are time-consuming to create)
-pack.ffdf(paste0(genPath, "pROC_1a(i)_logit_d"), pROC_obj1a_i_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(ii)_logit_d"), pROC_obj1a_ii_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(iii_logit_d"), pROC_obj1a_iii_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(iv)_logit_d"), pROC_obj1a_iv_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(v)_logit_d"), pROC_obj1a_v_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(vi)_logit_d"), pROC_obj1a_vi_logit_d);
-pack.ffdf(paste0(genPath, "pROC_1a(vii)_logit_d"), pROC_obj1a_vii_logit_d);
-
-# - Ensure objects are loaded into memory (useful when interactively running certain sections of this script)
-if (!exists('pROC_obj1a_i_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(i)_logit_d"), tempPath)
-if (!exists('pROC_obj1a_ii_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(ii)_logit_d"), tempPath)
-if (!exists('pROC_obj1a_iii_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(iii_logit_d"), tempPath)
-if (!exists('pROC_obj1a_iv_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(iv)_logit_d"), tempPath)
-if (!exists('pROC_obj1a_v_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(v)_logit_d"), tempPath)
-if (!exists('pROC_obj1a_vi_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(vi)_logit_d"), tempPath)
-if (!exists('pROC_obj1a_vii_logit_d')) unpack.ffdf(paste0(genPath,"pROC_1a(vii)_logit_d"), tempPath)
+pROC_obj1a_i_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a1, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_ii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a2, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_iii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a3, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_iv_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a4, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_v_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a5, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_vi_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a6, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj1a_vii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_valid_1a7, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
 
 
 
-# --- 2. Creating unified ROC-graph
+# --- 3. Creating unified ROC-graph
 # - Prepare graphing parameters
 col.v <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
 ltype.v <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash","solid")
@@ -493,7 +497,7 @@ auc.v <- c(paste0("1a(i)-LR.   AUC: ", sprintf("%.1f", pROC_obj1a_i_logit_d$auc)
                   "%; Gini: ", sprintf("%.1f", pROC_obj1a_vi_logit_d$auc*2-100), "%"),
            paste0("1a(vii)-LR. AUC: ", sprintf("%.1f", pROC_obj1a_vii_logit_d$auc), "% ± ", sprintf("%.2f",(pROC_obj1a_vii_logit_d$ci[3]-pROC_obj1a_vii_logit_d$ci[1])/2),
                   "%; Gini: ", sprintf("%.1f", pROC_obj1a_vii_logit_d$auc*2-100), "%"))
-legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, text.width=max(-strwidth(auc.v))/2.15, y.intersp=0.65)
+legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Add legend: Line-graph descriptions
 leg.v <- vector("expression",5)
@@ -504,7 +508,7 @@ leg.v[[4]] <- bquote("1a(iv):  Logistic Regression with"~italic(d)==1*","~italic
 leg.v[[5]] <- bquote("1a(v):   Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==18)
 leg.v[[6]] <- bquote("1a(vi):  Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==24)
 leg.v[[7]] <- bquote("1a(vii): Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==36)
-legend(x=83.2, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, text.width=max(-strwidth(leg.v))/2, y.intersp=0.65)
+legend(x=82.6, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Save plot
 dev.copy(png, file=paste0(genFigPath,"ROC_1a_logit_disc_k-values.png"), width=1000, height=1000, res=170, family=chosenFont); dev.off()
@@ -515,6 +519,6 @@ rm(pROC_obj1a_i_logit_d, pROC_obj1a_ii_logit_d, pROC_obj1a_iii_logit_d, pROC_obj
 
 
 # --- Grand Cleanup
-rm(dat_SICR_def_1a_i_save, dat_SICR_def_1a_ii_save, dat_SICR_def_1a_iii_save, 
-   dat_SICR_def_1a_iv_save, dat_SICR_def_1a_v_save, dat_SICR_def_1a_vi_save, dat_SICR_def_1a_vii_save)
+rm(datSICR_valid_1a1, datSICR_valid_1a2, datSICR_valid_1a3, datSICR_valid_1a4, datSICR_valid_1a5, datSICR_valid_1a6, datSICR_valid_1a7)
+gc()
 

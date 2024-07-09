@@ -185,7 +185,7 @@ plot.obj <- subset(datSICR.aggr.final, d==1 & k <= 12)
 plot.obj[, Group := factor(s)]
 
 ggplot(plot.obj,aes(x=k,y=Prevalence, group=Group)) + theme_minimal() + 
-  geom_line(aes(colour=Group, linetype=Group), size=1) + 
+  geom_line(aes(colour=Group, linetype=Group), linewidth=1) + 
   geom_point(aes(colour=Group, shape=Group), size=3) + 
   scale_y_continuous(label=percent) + scale_x_continuous(breaks=pretty_breaks(4), label=label_number(accuracy=1))
 

@@ -28,18 +28,18 @@
 # ------ 1. Performance measure analysis across SICR-definitions
 
 # - Load into memory
-if (!exists('performance_measures_1a_i')) unpack.ffdf(paste0(genPath,"performance_measures_1a(i)"), tempPath)
-if (!exists('performance_measures_1a_ii')) unpack.ffdf(paste0(genPath,"performance_measures_1a(ii)"), tempPath)
-if (!exists('performance_measures_1a_iii')) unpack.ffdf(paste0(genPath,"performance_measures_1a(iii)"), tempPath)
-if (!exists('performance_measures_1a_iv')) unpack.ffdf(paste0(genPath,"performance_measures_1a(iv)"), tempPath)
-if (!exists('performance_measures_1b_i')) unpack.ffdf(paste0(genPath,"performance_measures_1b(i)"), tempPath)
-if (!exists('performance_measures_1b_ii')) unpack.ffdf(paste0(genPath,"performance_measures_1b(ii)"), tempPath)
-if (!exists('performance_measures_1b_iii')) unpack.ffdf(paste0(genPath,"performance_measures_1b(iii)"), tempPath)
-if (!exists('performance_measures_1b_iv')) unpack.ffdf(paste0(genPath,"performance_measures_1b(iv)"), tempPath)
-if (!exists('performance_measures_1c_i')) unpack.ffdf(paste0(genPath,"performance_measures_1c(i)"), tempPath)
-if (!exists('performance_measures_1c_ii')) unpack.ffdf(paste0(genPath,"performance_measures_1c(ii)"), tempPath)
-if (!exists('performance_measures_1c_iii')) unpack.ffdf(paste0(genPath,"performance_measures_1c(iii)"), tempPath)
-if (!exists('performance_measures_1c_iv')) unpack.ffdf(paste0(genPath,"performance_measures_1c(iv)"), tempPath)
+if (!exists('performance_measures_1a_i')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(i)"), tempPath)
+if (!exists('performance_measures_1a_ii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(ii)"), tempPath)
+if (!exists('performance_measures_1a_iii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(iii)"), tempPath)
+if (!exists('performance_measures_1a_iv')) unpack.ffdf(paste0(genObjPath,"performance_measures_1a(iv)"), tempPath)
+if (!exists('performance_measures_1b_i')) unpack.ffdf(paste0(genObjPath,"performance_measures_1b(i)"), tempPath)
+if (!exists('performance_measures_1b_ii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1b(ii)"), tempPath)
+if (!exists('performance_measures_1b_iii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1b(iii)"), tempPath)
+if (!exists('performance_measures_1b_iv')) unpack.ffdf(paste0(genObjPath,"performance_measures_1b(iv)"), tempPath)
+if (!exists('performance_measures_1c_i')) unpack.ffdf(paste0(genObjPath,"performance_measures_1c(i)"), tempPath)
+if (!exists('performance_measures_1c_ii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1c(ii)"), tempPath)
+if (!exists('performance_measures_1c_iii')) unpack.ffdf(paste0(genObjPath,"performance_measures_1c(iii)"), tempPath)
+if (!exists('performance_measures_1c_iv')) unpack.ffdf(paste0(genObjPath,"performance_measures_1c(iv)"), tempPath)
 
 # - Merge datasets together
 performance_measures <- data.table(rbind(performance_measures_1a_i, performance_measures_1a_ii, performance_measures_1a_iii, performance_measures_1a_iv,
@@ -58,7 +58,7 @@ performance_measures[s>1]
 
 sprintf("%.2f", (performance_measures$CI_upper_prob - performance_measures$CI_lower_prob)/2)[5:12]
 sprintf("%.2f",(performance_measures$CI_upper_discrete - performance_measures$CI_lower_discrete)/2)[5:12]
-sprintf("%.1f", performance_measures$std_dev_SICR_rate_Act*100)[5:12]
+sprintf("%.2f", performance_measures$std_dev_SICR_rate_Act*100)[5:12]
 
 # summary plots
 plot(performance_measures$k, performance_measures$std_dev, type="b") # called "flexibility \omega" in main text
@@ -100,7 +100,7 @@ port.aggr <- datSICR_1b[SICR_def==0,list(EventRate = sum(SICR_events, na.rm=T)/.
 describe(port.aggr$SICR_Def)
 
 # - Recast/pivot data in order to create useful summaries across all time series
-port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
 
 # - Calculate useful summaries over rate time series
 stdevs_1b_full <- c(sd(port.aggr2$`1b(i)`, na.rm=T), sd(port.aggr2$`1b(ii)`, na.rm=T), 
@@ -166,7 +166,7 @@ label.v <- c("1b(i)"=  bquote("1b(i):   "*italic(k)==3),
     # overlay maxima
     geom_point(data=datAnnotate, aes(x=Date,y=EventRate,group=SICR_Def,colour=SICR_Def), size=5, shape=1, show.legend=F) +     
     # main line graph with overlaid points
-    geom_line(aes(colour=SICR_Def, linetype=SICR_Def), size=0.2) + 
+    geom_line(aes(colour=SICR_Def, linetype=SICR_Def), linewidth=0.2) + 
     geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
@@ -191,7 +191,7 @@ datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1b(i)", "1b(ii)", "1b(iii)",
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
     scale_colour_manual(name="", values=col.v, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
@@ -240,7 +240,7 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, size=Aggregate_Type)) + 
+    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, linewidth=Aggregate_Type)) + 
     geom_point(aes(colour=Aggregate_Type, shape=Aggregate_Type, size=Aggregate_Type2)) + 
     # Encircle certain points
     geom_point(data=datGraph_1b.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
@@ -249,6 +249,7 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
     scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
     scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
     scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
     guides(colour=guide_legend(ncol=1,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
@@ -296,7 +297,7 @@ port.aggr <- datSICR_1c[SICR_def==0,list(EventRate = sum(SICR_events, na.rm=T)/.
 describe(port.aggr$SICR_Def)
 
 # - Recast/pivot data in order to create useful summaries across all time series
-port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
 
 # - Calculate useful summaries over rate time series
 stdevs_1c_full <- c(sd(port.aggr2$`1c(i)`, na.rm=T), sd(port.aggr2$`1c(ii)`, na.rm=T), 
@@ -362,7 +363,7 @@ label.v <- c("1c(i)"=  bquote("1c(i):   "*italic(k)==3),
     # overlay maxima
     geom_point(data=datAnnotate, aes(x=Date,y=EventRate,group=SICR_Def,colour=SICR_Def), size=5, shape=1, show.legend=F) +     
     # main line graph with overlaid points
-    geom_line(aes(colour=SICR_Def, linetype=SICR_Def), size=0.2) + 
+    geom_line(aes(colour=SICR_Def, linetype=SICR_Def), linewidth=0.2) + 
     geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
@@ -387,7 +388,7 @@ datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1c(i)", "1c(ii)", "1c(iii)",
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
     scale_colour_manual(name="", values=col.v, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
@@ -436,7 +437,7 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, size=Aggregate_Type)) + 
+    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, linewidth=Aggregate_Type)) + 
     geom_point(aes(colour=Aggregate_Type, shape=Aggregate_Type, size=Aggregate_Type2)) + 
     # Encircle certain points
     geom_point(data=datGraph_1c.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
@@ -445,6 +446,7 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
     scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
     scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
     scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
     guides(colour=guide_legend(ncol=1,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
@@ -475,8 +477,8 @@ port.aggr_1c <- datSICR_1c[SICR_def==0,list(EventRate = sum(SICR_events, na.rm=T
                            by=list(SICR_Def, Date)][Date >= SICR_StartDte_1c & Date <= SICR_EndDte,] %>% setkey(SICR_Def,Date)
 
 # - Recast/pivot data in order to create useful summaries across all time series
-port.aggr2_1b <- port.aggr_1b %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
-port.aggr2_1c <- port.aggr_1c %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2_1b <- port.aggr_1b %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2_1c <- port.aggr_1c %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
 
 # - Calculate useful summaries over rate time series
 stdevs_1b_full <- c(sd(port.aggr2_1b$`1b(i)`, na.rm=T), sd(port.aggr2_1b$`1b(ii)`, na.rm=T), 
@@ -555,7 +557,7 @@ label.v <- c("a_i"=  bquote("(i):   "*italic(k)==3),
     # overlay maxima
     geom_point(data=datAnnotate, aes(x=Date,y=EventRate,group=SICR_Def_k,colour=SICR_Def_k), size=5, shape=1, show.legend=F) +     
     # main line graph with overlaid points
-    geom_line(aes(colour=SICR_Def_k, linetype=SICR_Def_k), size=0.2) + 
+    geom_line(aes(colour=SICR_Def_k, linetype=SICR_Def_k), linewidth=0.2) + 
     geom_point(aes(colour=SICR_Def_k, shape=SICR_Def_k), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
@@ -586,7 +588,7 @@ datSummary_1c <- data.table(k=c(3,6,9,12), SICR_Def=c("a_i", "b_ii", "c_iii", "d
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
     scale_colour_manual(name="", values=col.v, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
@@ -604,7 +606,7 @@ datSummary_1c <- data.table(k=c(3,6,9,12), SICR_Def=c("a_i", "b_ii", "c_iii", "d
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
     scale_colour_manual(name="", values=col.v, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
@@ -656,7 +658,7 @@ datGraph_1bc.aggr2[, Facet_math := factor(Facet,labels = c("'SICR-Definition cla
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, size=Aggregate_Type)) + 
+    geom_line(aes(colour=Aggregate_Type, linetype=Aggregate_Type, linewidth=Aggregate_Type)) + 
     geom_point(aes(colour=Aggregate_Type, shape=Aggregate_Type, size=Aggregate_Type2)) + 
     ## Encircle certain points
     geom_point(data=datGraph_1bc.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
@@ -666,6 +668,7 @@ datGraph_1bc.aggr2[, Facet_math := factor(Facet,labels = c("'SICR-Definition cla
     scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
     scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
     scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
     guides(colour=guide_legend(ncol=3,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )

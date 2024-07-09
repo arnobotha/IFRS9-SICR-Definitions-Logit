@@ -11,7 +11,6 @@
 # ------------------------------------------------------------------------------
 # -- Inputs:
 #   - 0a.Custom_Functions.R | Custom function definitions and helper functions
-#   - 0b.findOptimalCutoff.R | Custom functions to aid threshold-selection for logit-models
 #   - DelinqM.R | Delinquency measures and related functions
 # ==============================================================================
 
