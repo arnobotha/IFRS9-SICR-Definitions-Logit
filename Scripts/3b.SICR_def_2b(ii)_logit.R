@@ -1013,7 +1013,7 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
 # Before the inclusion of PD-ratio, not all variables were statistically significant
-# PD-ratio is not statistically significant with a p-value of 0.9313
+# PD-ratio is not statistically significant with a p-value of 0.9322
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2b_ii := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -1033,9 +1033,9 @@ labels.v <- c(bquote(italic(C)[0]),
 
 # - Plot double density across both classes
 ggplot( data=datSICR_valid, aes(x=Prob_chosen_2b_ii)) + theme_bw() + 
-        geom_histogram(aes(y= ..density.., colour=factor(SICR_target), fill=factor(SICR_target)), alpha=0.7,
-                       bins=2*datSICR_valid[,.N]^(1/3), position="identity") + # using Rice's rule
-        geom_density(aes(colour=factor(SICR_target), fill=factor(SICR_target)), size=0.8, alpha=0.5) + 
+        geom_histogram(aes(y=after_stat(density), colour=factor(SICR_target), fill=factor(SICR_target)), alpha=0.7,
+                       bins=round(2*datSICR_valid[,.N]^(1/3)), position="identity") + # using Rice's rule
+        geom_density(aes(colour=factor(SICR_target), fill=factor(SICR_target)), linewidth=0.8, alpha=0.5) + 
         labs(x="Class probability", y="Density") + 
         theme(legend.position="bottom", text=element_text(family=chosenFont)) + 
         scale_color_brewer(palette="Dark2", name="Class", labels=labels.v) + 
@@ -1088,9 +1088,9 @@ alpha <- 0.05
 # - Confirm SICR-dataset is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_", SICR_label), tempPath)
 
-# - Create ROC-object | probabilities vs discrete lables
-pROC_obj_chosena <- roc(formula= SICR_target~Pred_chosen_2b_ii, data=datSICR_valid, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj_chosenb <- roc(formula= SICR_target~Prob_chosen_2b_ii, data=datSICR_valid, ci.method="bootstrap", ci=T, conf.level = 1-alpha, percent=T)
+# - Create ROC-object | probabilities vs discrete labels
+pROC_obj_chosena <- roc(formula= SICR_target~Pred_chosen_2b_ii, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj_chosenb <- roc(formula= SICR_target~Prob_chosen_2b_ii, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
 
 
 # --- 6.2 Compute other performance measures
@@ -1151,7 +1151,7 @@ port.aggr <- datSICR_graph[SICR_def==0, list(EventRate = sum(SICR_events, na.rm=
 port.aggr[, Facet_label := paste0("SICR-definition ", SICR_label)]
 
 # - Calculate MAE over time by line graph type in summarising differences amongst line graphs
-port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date, Type), names_from = c(Type), values_from = c(EventRate))
+port.aggr2 <- port.aggr %>% pivot_wider(id_cols = c(Date), names_from = c(Type), values_from = c(EventRate))
 (diag.Act_ExpProb <- mean(abs(port.aggr2$a_Actual - port.aggr2$b_Modelled_prob)) * 100)
 (diag.Act_ExpDisc <- mean(abs(port.aggr2$a_Actual - port.aggr2$c_Modelled_disc)) * 100)
 
@@ -1178,7 +1178,7 @@ label.v <- c("a_Actual"=bquote(italic(A[t])*": Actual"),
           strip.background=element_rect(fill="snow2", colour="snow2"),
           strip.text=element_text(size=8, colour="gray50"), strip.text.y.right=element_text(angle=90)) + 
     # main line graph with overlaid points
-    geom_line(aes(colour=Type, linetype=Type), size=0.1) + 
+    geom_line(aes(colour=Type, linetype=Type), linewidth=0.1) + 
     geom_point(aes(colour=Type, shape=Type), size=0.6) + 
     #annotations
     annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*1.9,
@@ -1230,7 +1230,7 @@ performance_measures_2b_ii <- data.frame(SICR_definition = paste0(SICR_label, "_
                                          OverPredict_ExpDisc = round(overPredictDegree_disc,digits=5),
                                          OverPredict_ExpProb = round(overPredictDegree_prob,digits=5),
                                          stringsAsFactors = FALSE)
-pack.ffdf(paste0(genPath, "performance_measures_", SICR_label), performance_measures_2b_ii); gc()
+pack.ffdf(paste0(genObjPath, "performance_measures_", SICR_label), performance_measures_2b_ii); gc()
 
 
 # --- 7.2 Trained logit model
