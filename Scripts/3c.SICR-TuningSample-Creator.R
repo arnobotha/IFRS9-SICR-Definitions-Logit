@@ -93,7 +93,7 @@ fill.v <- brewer.pal(10, "Set2")[c(1,2)]
 
 # - Create graph to evidence minimum strata sizes
 (g0 <- ggplot(datStrata, aes(x=Date, y=Freq, group=SICR_target)) + theme_minimal() + 
-  labs(x=bquote("Reporting date (months) "*italic(t)), y=bquote("Proporionate volume of SICR-outcomes (%) within "*italic(D[T])~"("*.(round(train_prop*smp_size/1000))*"k)")) + 
+  labs(x=bquote("Reporting date (months) "*italic(t)), y=bquote("Account volumes in "*italic(D[T])~"("*.(round(train_prop*smp_size/1000))*"k)")) + 
   theme(text=element_text(family=chosenFont),legend.position = "bottom",
         axis.text.x=element_text(angle=90), #legend.text=element_text(family=chosenFont), 
         strip.background=element_rect(fill="snow2", colour="snow2"),
