@@ -720,10 +720,8 @@ rm(datSICR); gc()
 inputs_chosen <- SICR_target ~ Term + InterestRate_Margin + BalanceLog + TimeInPerfSpell + PerfSpell_Num + g0_Delinq + PD_ratio +
                                slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + slc_acct_pre_lim_perc_imputed +
                                pmnt_method_grp + M_Repo_Rate + M_Inflation_Growth + M_DTI_Growth + M_DTI_Growth_12 + M_RealGDP_Growth
-# Results first without the inclusion of the PD ratio
-# All variables are statistically significant apart from inflation growth, although inflation growth was purposefully included
-# PD ratio is not statistically significant (p-value of 0.34 and standard error of 0.0010590) as well as inflation growth
-# But all other variables remain statistically significant
+# Most variables are statistically significant, except: inflation growth (used to be M_Repo_Rate before adding PD_ratio)
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.34 and standard error of 0.0010590) as well as inflation growth
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -788,6 +786,7 @@ datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "datSICR_smp_", SICR_label), datSICR_smp)
 pack.ffdf(paste0(genPath, "datSICR_valid_", SICR_label), datSICR_valid)
+pack.ffdf(paste0(genPath, "datSICR_train_", SICR_label), datSICR_train)
 
 
 

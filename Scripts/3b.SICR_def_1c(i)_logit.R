@@ -750,13 +750,9 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
-# Results first without the inclusion of the PD ratio
-# Not all variables are statistically significant
-# PD ratio is not statistically significant (p-value of 0.975662 and standard error of 0.00000000041260)
-
-# NOTES: The other insignificant variables based on p-values are:
-# Term (p-value of 17.17%), TimeInPerfSpell (p-value of 90.10%) PerfSpell_Num (p-value of 27.26%), and inflation growth 
-# (p-value of 20.24%)
+# Most variables are statistically significant, except: Term, TimeInPerfSpell, PerfSpell_Num, M_Inflation_Growth, 
+#     pmnt_method_grp (but only its "MISSING DATA" bin)
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.975662 and standard error of 0.00000000041260)
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_1c_i := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -804,6 +800,7 @@ datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "datSICR_smp_", SICR_label), datSICR_smp)
 pack.ffdf(paste0(genPath, "datSICR_valid_", SICR_label), datSICR_valid)
+pack.ffdf(paste0(genPath, "datSICR_train_", SICR_label), datSICR_train)
 
 
 

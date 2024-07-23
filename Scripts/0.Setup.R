@@ -2,7 +2,7 @@
 # Preparing runtime environment and setting parameters
 # ------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
-# SCRIPT AUTHOR(S): Esmerelda Oberholzer, Dr Arno Botha
+# SCRIPT AUTHOR(S): Dr Arno Botha, Esmerelda Oberholzer
 
 # DESCRIPTION:
 # This script installs and loads various libraries and packages, compiles all
