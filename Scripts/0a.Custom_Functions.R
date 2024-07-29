@@ -805,7 +805,7 @@ varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.0
   results$data[, Contribution := Value_Abs / sumVarImport]
   
   # - Post results to console
-  #print(results$data)
+  print(results$data)
   
   # --- 3. Creating a general plot of the variable importance (if desired)
   if (impPlot==T){

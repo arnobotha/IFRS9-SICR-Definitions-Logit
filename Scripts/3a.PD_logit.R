@@ -25,11 +25,6 @@
 
 # ------ 0. Setup/parameter definition
 
-
-# - Graphing parameters
-chosenFont <- "Cambria"
-dpi <- 180
-
 # - Field names
 stratifiers <- c("DefaultStatus1_lead_12_max", "Date") # Must at least include target variable used in graphing event rate
 targetVar <- "DefaultStatus1_lead_12_max"
@@ -132,7 +127,7 @@ resid_deviance_glm(logitMod_basic)
 
 # ------ 4. Portfolio Analytics
 
-# --- 1. Comparison of actual vs expected default rate
+# --- 1. Comparison of actual vs expected default rate over time
 
 # - Add probability scores to the sub sampled set
 datCredit_smp[, prob_basic := predict(logitMod_basic, newdata = datCredit_smp, type="response")]
@@ -162,6 +157,8 @@ stdev_Def_ExpProb <- sd(port.aggr2$b_Modelled_prob, na.rm=T)
 overPredictDegree_prob <- sum(port.aggr2$b_Modelled_prob>=port.aggr2$a_Actual)/length(port.aggr2$b_Modelled_prob)
 
 # - Graphing parameters
+chosenFont <- "Cambria"
+dpi <- 220
 vCol <- brewer.pal(5, "Set1")
 vLabel <- c("a_Actual"=bquote(italic(A[t])*": Actual event rate"),
              "b_Modelled_prob"=bquote(italic(B[t])*": Expected event rate"))
@@ -193,6 +190,62 @@ ggsave(g, file=paste0(genFigPath, "TimeGraph_DefaultRate_ActExp.png"), width=120
 
 # - Cleanup
 rm(datDefault_graph, port.aggr, port.aggr2, g, vLabel); gc()
+
+
+
+
+# --- 2. Variable importance
+# - Variable importance
+datGraph <- varImport_logit(logitMod_basic, method="stdCoef_Goodman", sig_level=0.1, impPlot=F)$data
+
+# - Aesthetic engineering
+chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
+vLabel <- c("pmnt_method_grpStatement"="PayMethod-PAYROLL", "pmnt_method_grpMISSING_DATA"="PayMethod-MISSING",
+             "Balance_Real"="BalanceReal", "slc_acct_pre_lim_perc_imputed"="Prelim_Perc",
+             "Principal_Real"="PrincipalReal", "pmnt_method_grpSalary/Suspense"="PayMethod-SALARY",
+             "InterestRate_Margin"="InterestRate_Margin", "Age_Adj"="Age", "Term"="Term")
+
+# - Calculate contribution degrees to sum of importance measure across all variables
+# NOTE: These contributions are merely ancillary and for graphing purposes.
+# They should not considered too seriously, unless studied more extensively.
+sumVarImport <- sum(datGraph$Value_Abs, na.rm=T)
+
+# - Create graph
+(g <- ggplot(datGraph, aes(x=reorder(Variable, Value_Abs))) + theme_minimal() + 
+  theme(text=element_text(family=chosenFont), legend.position=c(0.8,0.6)) + 
+  labs(x="Variable name", y="Standardised coefficients: Goodman") + 
+  geom_col(aes(y=Value_Abs, fill=Value_Abs)) + 
+  geom_label(aes(y=sumVarImport*0.05, label=paste(percent(Contribution, accuracy=0.1)), fill=Value_Abs), family=chosenFont) + 
+  annotate(geom="text", x=datGraph[.N, Variable], y=max(datGraph$Value_Abs, na.rm=T)*0.75, family=chosenFont, size=3,
+           label=paste0("Variable Importance (sum): ", comma(sumVarImport, accuracy=0.1))) + 
+  scale_fill_distiller(palette=colPalette, name="Absolute value", direction=1) +
+  scale_colour_distiller(palette=colPalette, name="Absolute value", direction=1) + 
+  scale_x_discrete(labels=vLabel) + coord_flip())
+
+# - Save graph
+ggsave(g, file=paste0(genFigPath, "VariableImportance_stdCoef_Goodman_PD_Basic_v2.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
+
+
+
+
+# --- 3. Lifetime default rates: actual vs expected | Ignore right-censoring
+datCredit_aggr <- datCredit_smp[order(Age_Adj), 
+                                list(N=.N, Default_lead_12_max_sum = sum(DefaultStatus1_lead_12_max, na.rm=T),
+                                     DefaultRate_Exp = mean(prob_basic, na.rm=T),
+                                     DefaultRate_Exp_SD = sd(prob_basic, na.rm=T)), 
+                                by=list(Age_Adj)]
+datCredit_aggr[, DefaultRate_Act := Default_lead_12_max_sum / N]
+
+### SCRATCH: quick graphs for planning analytics
+ggplot(datCredit_aggr[Age_Adj <= 300,], aes(x=Age_Adj, y=DefaultRate_Act)) + theme_minimal() + geom_line()
+ggplot(datCredit_aggr[Age_Adj <= 300,], aes(x=Age_Adj, y=N)) + theme_minimal() + geom_line()
+
+
+
+
+
+
+
 
 
 
