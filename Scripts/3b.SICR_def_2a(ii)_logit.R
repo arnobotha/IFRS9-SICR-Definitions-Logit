@@ -902,6 +902,12 @@ rm(datSICR); gc()
 inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + PD_ratio +
                                PerfSpell_Num + g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_Repo_Rate +
                                M_Inflation_Growth + M_DTI_Growth + M_DTI_Growth_12
+# Not all variables are statistically significant, including: the missing data group of the payment method group, time in performing spell, performing spell number,
+# the missing group of the account direction variable and the repo rate
+# After including PD ratio, the statistically insignificant variables are: the missing data group of the payment method group, time in performing spell, performing spell number,
+# the missing group of the account direction variable and the repo rate
+# Therefore, the inclusion of PD ratio did not change the significance of any variables
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.98201 and standard error of 0.00000000000148552)
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -909,11 +915,6 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
-# Results first without the inclusion of the PD ratio
-# Not all variables are statistically significant
-# PD ratio is not statistically significant (p-value of 0.98201 and standard error of 0.00000000000148552)
-
-# interesting that the repo rate is not significant (as with the previous definitions), but the inflation growth is
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2a_ii := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -972,6 +973,7 @@ datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "datSICR_smp_", SICR_label), datSICR_smp)
 pack.ffdf(paste0(genPath, "datSICR_valid_", SICR_label), datSICR_valid)
+pack.ffdf(paste0(genPath, "datSICR_train_", SICR_label), datSICR_train)
 
 
 
