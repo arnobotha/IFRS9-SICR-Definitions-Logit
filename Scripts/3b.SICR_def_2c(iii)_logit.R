@@ -716,6 +716,14 @@ rm(datSICR); gc()
 inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + PD_ratio +
                                g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_RealIncome_Growth +
                                M_Repo_Rate + M_Inflation_Growth + M_Emp_Growth + M_Emp_Growth_12 + M_RealIncome_Growth_12
+# Not all variables are statistically significant, including: Interest rate margin, balance, payment method, prepaid funds, missing group
+# of account arrears direction, if the account rolled ever in the last 24 months, real income growth, inflation growth,
+# employment growth and its 12-month lag, and the 12-month lagged real income growth
+# After including PD ratio, the statistically insignificant variables are: Interest rate margin, balance, payment method, prepaid funds, missing group
+# of account arrears direction, if the account rolled ever in the last 24 months, real income growth, inflation growth,
+# employment growth and its 12-month lag, and the 12-month lagged real income growth
+# Therefore, the inclusion of PD ratio did not change the significance of any variables
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.9853 and standard error of 0.000114714)
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -723,8 +731,6 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
-# There are multiple variables that are not statistically significant before the inclusion of PD-ratio
-# PD-ratio has a p-value of 0.9853 and standard error of 0.000114714
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2c_iii := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -783,6 +789,7 @@ datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "datSICR_smp_", SICR_label), datSICR_smp)
 pack.ffdf(paste0(genPath, "datSICR_valid_", SICR_label), datSICR_valid)
+pack.ffdf(paste0(genPath, "datSICR_train_", SICR_label), datSICR_train)
 
 
 
