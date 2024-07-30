@@ -721,6 +721,12 @@ inputs_chosen <- SICR_target ~ BalanceToTerm + InterestRate_Margin + Receipt_Inf
                                slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + g0_Delinq + slc_acct_arr_dir_3 + 
                                slc_acct_roll_ever_24_imputed + M_Repo_Rate + M_Inflation_Growth + M_DTI_Growth +
                                M_DTI_Growth_12 + M_Emp_Growth
+# Not all variables are statistically significant, including: Balance to term, receipt, payment method, time in performing spell,
+# repo rate, inflation growth rate and the 12-month lagged DTI growth rate
+# After including PD ratio, the statistically insignificant variables are: Balance to term, receipt, payment method, time in performing spell,
+# repo rate, inflation growth rate and the 12-month lagged DTI growth rate
+# Therefore, the inclusion of PD ratio did not change the significance of any variables
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.899381 and a standard error of 0.000026964)
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -728,8 +734,6 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
-# Without the inclusion of PD-ratio, not all the variables are statistically significant
-# PD-ratio is not statistically significant with a p-value of 0.899381 and a standard error of 0.000026964
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2b_iii := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -788,6 +792,7 @@ datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 # - Save to disk (zip) for quick disk-based retrieval later
 pack.ffdf(paste0(genPath, "datSICR_smp_", SICR_label), datSICR_smp)
 pack.ffdf(paste0(genPath, "datSICR_valid_", SICR_label), datSICR_valid)
+pack.ffdf(paste0(genPath, "datSICR_train_", SICR_label), datSICR_train)
 
 
 
