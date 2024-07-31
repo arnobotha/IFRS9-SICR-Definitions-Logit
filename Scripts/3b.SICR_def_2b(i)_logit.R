@@ -719,18 +719,8 @@ table(datSICR_valid$SICR_target) %>% prop.table()
 rm(datSICR); gc()
 
 # - Define model form
-inputs_chosen <- SICR_target ~ BalanceToTerm + InterestRate_Margin + Receipt_InfLog + pmnt_method_grp + PD_ratio +
-                               slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + g0_Delinq + slc_acct_arr_dir_3 + 
-                               slc_acct_roll_ever_24_imputed + M_Repo_Rate + M_Inflation_Growth + M_DTI_Growth +
-                               M_DTI_Growth_12 + M_Emp_Growth
-# Not all variables are statistically significant, including: Balance to term, receipts, the missing and statement group of payment method group,
-# the prepaid funds, time in performing spell, the missing and rolling groups of account direction, the repo rate,
-# inflation growth rate, 12-month DTI growth, and employment growth
-# After including PD ratio, the statistically insignificant variables are: Balance to term, receipts, the missing and statement group of payment method group,
-# the prepaid funds, time in performing spell, the missing and rolling groups of account direction, the repo rate,
-# inflation growth rate, 12-month DTI growth, and employment growth
-# Therefore, the inclusion of PD ratio did not change the significance of any variables
-# [Ad hoc] PD ratio is not statistically significant (p-value of 0.92191 and standard error of 0.00121717)
+inputs_chosen <- SICR_target ~ slc_acct_pre_lim_perc_imputed + g0_Delinq + PD_ratio + 
+                               slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_DTI_Growth + M_Emp_Growth
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -738,6 +728,9 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
+# Most variables are statistically significant, except: slc_acct_pre_lim_perc_imputed, slc_acct_arr_dir_3 (but only its "MISSING" and "ROLLING" bins), 
+#     M_Emp_Growth
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.931 and standard error of 0.00109202)
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2b_i := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -745,9 +738,9 @@ datSICR_valid[, Prob_chosen_2b_i := predict(logit_model_chosen, newdata = datSIC
 datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type="response")]
 
 # - Compute the AUC
-auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2b_i) # 97.20% (before and after)
-auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2b_i) # 97.15% (before and after)
-auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 97.18% (before and after)
+auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2b_i) # 97.19% 
+auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2b_i) # 97.15%
+auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 97.17%
 
 
 # --- 5.2 Plot the density of the class probabilities
@@ -845,7 +838,7 @@ conf_mat[, negatives := TN + FP]
 
 # - Confirm SICR-dataset is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
-if (!exists('logistic_cutoff')) logistic_cutoff <- 0.07637852
+if (!exists('logistic_cutoff')) logistic_cutoff <- 0.0796783
 
 # A few things of concern:
 # 1) Volatility in event rates due to relatively low sampling volumes in validation set

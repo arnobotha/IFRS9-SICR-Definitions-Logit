@@ -734,10 +734,6 @@ rm(datSICR); gc()
 inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + TimeInPerfSpell + PD_ratio +
                                PerfSpell_Num + g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_Repo_Rate +
                                M_Inflation_Growth + M_DTI_Growth + M_DTI_Growth_12
-# Not all variables are statistically significant, including: the missing group of payment method group, the repo rate and the inflation growth rate
-# After including PD ratio, the statistically insignificant variables are: the missing group of payment method group, the repo rate and the inflation growth rate
-# Therefore, the inclusion of PD ratio did not change the significance of any variables
-# [Ad hoc] PD ratio is not statistically significant (p-value of 0.975170 and standard error of 0.00000000000164942)
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -745,6 +741,8 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
+# Most variables are statistically significant, except: pmnt_method_grp (but only its "MISSING" bin), M_Repo_Rate, M_Inflation_Growth
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.975170 and standard error of 0.00000000000164942)
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2a_iv := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
