@@ -1007,10 +1007,10 @@ inputs_chosen <- SICR_target ~ BalanceToTerm + InterestRate_Margin + Receipt_Inf
                                M_DTI_Growth_12 + M_Emp_Growth
 # Not all variables are statistically significant, including: balance to term, interest rate margin, receipts, the missing and
 # salary/suspense group of payment method, time in performing spell, the account arrears direction, repo rate, inflation growth rate,
-# 12-month lagged DTO growth rate and employment growth rate
+# 12-month lagged DTI growth rate and employment growth rate
 # After including PD ratio, the statistically insignificant variables are: balance to term, interest rate margin, receipts, the missing and
 # salary/suspense group of payment method, time in performing spell, the account arrears direction, repo rate, inflation growth rate,
-# 12-month lagged DTO growth rate and employment growth rate
+# 12-month lagged DTI growth rate and employment growth rate
 # Therefore, the inclusion of PD ratio did not change the significance of any variables
 # [Ad hoc] PD ratio is not statistically significant (p-value of 0.9322 and standard error of 0.00015676)
 
