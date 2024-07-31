@@ -713,17 +713,8 @@ table(datSICR_valid$SICR_target) %>% prop.table()
 rm(datSICR); gc()
 
 # - Define model form
-inputs_chosen <- SICR_target ~ InterestRate_Margin + BalanceLog + pmnt_method_grp + slc_acct_pre_lim_perc_imputed + PD_ratio +
-                               g0_Delinq + slc_acct_arr_dir_3 + slc_acct_roll_ever_24_imputed + M_RealIncome_Growth +
-                               M_Repo_Rate + M_Inflation_Growth + M_Emp_Growth + M_Emp_Growth_12 + M_RealIncome_Growth_12
-# Not all variables are statistically significant, including: Interest rate margin, balance, payment method, prepaid funds, missing group
-# of account arrears direction, if the account rolled ever in the last 24 months, real income growth, inflation growth,
-# employment growth and its 12-month lag, and the 12-month lagged real income growth
-# After including PD ratio, the statistically insignificant variables are: Interest rate margin, balance, payment method, prepaid funds, missing group
-# of account arrears direction, if the account rolled ever in the last 24 months, real income growth, inflation growth,
-# employment growth and its 12-month lag, and the 12-month lagged real income growth
-# Therefore, the inclusion of PD ratio did not change the significance of any variables
-# [Ad hoc] PD ratio is not statistically significant (p-value of 0.9853 and standard error of 0.000114714)
+inputs_chosen <- SICR_target ~ g0_Delinq + slc_acct_roll_ever_24_imputed + PD_ratio +
+                                M_Emp_Growth + M_RealIncome_Growth_12
 
 # - Save model formula
 pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), inputs_chosen)
@@ -731,6 +722,8 @@ pack.ffdf(paste0(genObjPath, "SICR_", SICR_label, "_formula_undummified"), input
 # - Fit final logit model
 logit_model_chosen <- glm(inputs_chosen, data=datSICR_train, family="binomial")
 summary(logit_model_chosen)
+# Most variables are statistically significant, except: slc_acct_roll_ever_24_imputed 
+# [Ad hoc] PD ratio is not statistically significant (p-value of 0.9934 and standard error of 0.00000000527595)
 
 # - Score data using fitted model
 datSICR_train[, Prob_chosen_2c_iii := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
@@ -738,9 +731,9 @@ datSICR_valid[, Prob_chosen_2c_iii := predict(logit_model_chosen, newdata = datS
 datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type="response")]
 
 # - Compute the AUC
-auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2c_iii) # 98.04%
-auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2c_iii) # 74.70%
-auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 80.97%
+auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2c_iii) # 96.89%
+auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2c_iii) # 71.25%
+auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 78.11%
 
 
 # --- 5.2 Plot the density of the class probabilities
