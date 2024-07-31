@@ -71,9 +71,17 @@ rm(performance_measures_1a_i, performance_measures_1a_ii, performance_measures_1
 # - Analysis
 performance_measures
 
-sprintf("%.2f", (performance_measures$CI_upper_prob - performance_measures$CI_lower_prob)/2)[13:24]
+# --- Create succinct summaries for populating certain tables in SICR-article (e.g., tab:1bc-performance)
+# - Instability \sigma
+paste0(performance_measures$SICR_definition, ": ", percent(performance_measures$std_dev_SICR_rate_Act, accuracy=0.01))
+# - AUC
+paste0(performance_measures$SICR_definition,": ", sprintf("%.1f", performance_measures$AUC_prob), "% ± ", 
+  sprintf("%.2f", (performance_measures$CI_upper_prob - performance_measures$CI_lower_prob)/2), "%")
 
 
 # - Store results
 write_xlsx(x=performance_measures,path=paste0(genObjPath, "PerfMeasures_All.xlsx"))
 pack.ffdf(paste0(genObjPath, "PerformanceMeasures_All"), performance_measures); gc()
+
+# - Cleanup
+rm(performance_measures); gc()

@@ -179,6 +179,13 @@ write_xlsx(x=datSICR.aggr.final,path=paste0(genObjPath, "PrevalenceRates.xlsx"))
 # - Cleanup
 rm(datSICR); gc()
 
+# - Calculate mean prevalence to facilitate certain analyses
+vMeans_s_d1 <- datSICR.aggr.final[d==1, list(Phi_mean_s_d1 = mean(Prevalence, na.rm=T)), by=list(s)]
+vMeans_s_d2 <- datSICR.aggr.final[d==2, list(Phi_mean_s_d2 = mean(Prevalence, na.rm=T)), by=list(s)]
+
+# - Calculate ratio for inference (sec. 4.4 in SICR-article)
+vMeans_s_d1 / vMeans_s_d2
+
 
 # -- Analysis: Varying stickiness for class 1
 plot.obj <- subset(datSICR.aggr.final, d==1 & k <= 12)
@@ -190,3 +197,7 @@ ggplot(plot.obj,aes(x=k,y=Prevalence, group=Group)) + theme_minimal() +
   scale_y_continuous(label=percent) + scale_x_continuous(breaks=pretty_breaks(4), label=label_number(accuracy=1))
 
 ### RESULTS: Prevalence decreases as k increases, like for class 1a
+
+# - Cleanup
+rm(datSICR.aggr, datSICR.aggr.final, vMeans_s_d1, vMeans_s_d2, plot.obj); gc()
+
