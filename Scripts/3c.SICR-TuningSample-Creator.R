@@ -88,8 +88,8 @@ datStrata_aggr[, StrataSize_Margin := qnorm(1-(1-confLevel)/2) * datStrata_aggr$
 
 # - Graphing parameters
 chosenFont <- "Cambria"; dpi <- 170
-col.v <- brewer.pal(10, "Dark2")[c(1,2)]
-fill.v <- brewer.pal(10, "Set2")[c(1,2)]
+col.v <- brewer.pal(8, "Dark2")[c(1,2)]
+fill.v <- brewer.pal(8, "Set2")[c(1,2)]
 
 # - Create graph to evidence minimum strata sizes
 (g0 <- ggplot(datStrata, aes(x=Date, y=Freq, group=SICR_target)) + theme_minimal() + 
@@ -108,8 +108,8 @@ fill.v <- brewer.pal(10, "Set2")[c(1,2)]
                           sprintf("%.0f", datStrata_aggr$StratumSize_Min))) +     
   # facets & scale options
   facet_grid(Facet_label ~ .) + 
-  scale_colour_manual(name=bquote("SICR-outcome "*italic(Y[it])), values=col.v) + 
-  scale_fill_manual(name=bquote("SICR-outcome "*italic(Y[it])), values=fill.v) + 
+  scale_colour_manual(name="SICR-outcome", values=col.v) + 
+  scale_fill_manual(name="SICR-outcome", values=fill.v) + 
   scale_y_continuous(breaks=pretty_breaks(), label=comma) + 
   scale_x_date(date_breaks=paste0(6, " month"), date_labels = "%b %Y") )
 
