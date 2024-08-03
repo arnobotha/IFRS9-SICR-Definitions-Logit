@@ -44,18 +44,20 @@ if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_labe
 
 # - Implement a threshold based on the EBA-recommended threshold and the best performing threshold based on the AUC
 datSICR_smp[, PD_Disc_reg := ifelse(PD_ratio >= 2, 1, 0)]
-datSICR_smp[, PD_Disc_best := ifelse(PD_ratio >= 1.2, 1, 0)]
+datSICR_smp[, PD_Disc_best := ifelse(PD_ratio >= 1, 1, 0)]
+# NOTE: The variable PD_Disc_best was interactively created using various thresholds with the results provided below
 
 # - Calculate the AUC
 auc(datSICR_smp$SICR_target, datSICR_smp$ExpDisc) # 76.75%
 auc(datSICR_smp$SICR_target, datSICR_smp$PD_Disc_reg) # 51.51%
-auc(datSICR_smp$SICR_target, datSICR_smp$PD_Disc_best) # 60.75%
+auc(datSICR_smp$SICR_target, datSICR_smp$PD_Disc_best) # 63.64%
 
 ### RESULTS:
 # On a 200% threshold, the AUC is 51.51%, not much better than flipping a random coin
 # On a 180% threshold, the AUC is 56.48%, slightly better than flipping a random coin
 # On a 150% threshold, the AUC is 59.91%, which at least shows some predictive power
 # On a 120% threshold, the AUC is 60.75%, only slightly better than 150%
+# On a 100% threshold, the AUC is 63.64%, which is the best performing 
 # On a 300% threshold, the AUC is 51.02%, not much better than flipping a random coin
 # As the threshold becomes smaller, the AUC improves and vice versa
 
@@ -107,6 +109,7 @@ label.v <- c("a_Actual"=bquote(italic(A[t])*": Actual"),
              "b_PD_disc_reg"=bquote(italic(B[t])*": Expected-PD-rule (EBA)"),
              "c_PD_disc_best"=bquote(italic(C[t])*": Expected-PD-rule (best)"),
              "d_SICR_model_disc"=bquote(italic(D[t])*": Expected-SICR-model"))
+port.aggr <- port.aggr[port.aggr$Date > "2007-01-31", ]
 
 # - Create graph
 (g <- ggplot(port.aggr, aes(x=Date, y=EventRate, group=Type)) + theme_minimal() + 
@@ -119,13 +122,13 @@ label.v <- c("a_Actual"=bquote(italic(A[t])*": Actual"),
     geom_line(aes(colour=Type, linetype=Type), linewidth=0.4) + 
     geom_point(aes(colour=Type, shape=Type), size=1.2) + 
     #annotations
-    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*3.8,
+    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*12,
              label=paste0("'MAE between '*italic(A[t])*' and '*italic(B[t])*': ", sprintf("%.2f", diag.Act_PD_disc_reg),"%'"),
              family=chosenFont, size=3, parse=T) + 
-    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*3.4,
+    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*11,
              label=paste0("'MAE between '*italic(A[t])*' and '*italic(C[t])*': ", sprintf("%.2f", diag.Act_PD_disc_best),"%'"),
              family=chosenFont, size=3, parse=T) +
-    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*3.0,
+    annotate(geom="text", x=as.Date("2015-12-31"), y=port.aggr[Date >= "2012-12-31" & Type=="a_Actual", mean(EventRate)]*10,
              label=paste0("'MAE between '*italic(A[t])*' and '*italic(D[t])*': ", sprintf("%.2f", diag.Act_ExpDisc),"%'"),
              family=chosenFont, size=3, parse=T) +    
     # facets & scale options
