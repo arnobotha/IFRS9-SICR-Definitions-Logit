@@ -68,7 +68,9 @@ varKeep <- c(# Delinquency-theme inputs
              # Credit-themed inputs
              "BalanceLog", "Term", "InterestRate_Margin", "pmnt_method_grp", "slc_acct_pre_lim_perc_imputed", 
              # Macroeconomic-themed inputs
-             "M_Repo_Rate", "M_Inflation_Growth", "M_DTI_Growth", "M_DTI_Growth_12", "M_RealGDP_Growth"
+             "M_Repo_Rate", "M_Inflation_Growth", "M_DTI_Growth", "M_DTI_Growth_12", "M_RealGDP_Growth",
+             # PD-ratio
+             "PD_ratio"
 )
 
 # 1a(i)
