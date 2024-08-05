@@ -75,6 +75,16 @@ plot(performance_measures$k, performance_measures$OverPredict_ExpProb, type="b")
 plot(diff(performance_measures$AUC_prob)/performance_measures$AUC_prob[1:6] , x=performance_measures$k[2:7], xlab="SICR-Definitions 1a: k", ylab="AUC-difference (%) from previous definition [prob]", type="b")
 plot(diff(performance_measures$AUC_discrete)/performance_measures$AUC_discrete[1:6], x=performance_measures$k[2:7], xlab="SICR-Definitions 1a: k", ylab="AUC-difference (%) from previous definition [discrete]", type="b")
 
+# - Grand mean of MAE (Actual vs Expected probability)
+percent(mean(performance_measures[1:6, MAE_Act_ExpProb])/100, accuracy=0.01) # 0.44%
+percent(mean(performance_measures[1:4, MAE_Act_ExpProb])/100, accuracy=0.01) # 0.43% (not used)
+
+# - Grand mean of MAE (Actual vs Expected discrete prediction)
+percent(mean(performance_measures[1:7, MAE_Act_ExpDisc])/100, accuracy=0.01) # 1.11%
+
+# - Grand mean of AUC
+percent(mean(performance_measures[1:6, AUC_prob])/100, accuracy=0.1) # 85.65%
+
 # - Store results
 write_xlsx(x=performance_measures,path=paste0(genObjPath, "PerfMeasures_1a.xlsx"))
 pack.ffdf(paste0(genObjPath, "PerformanceMeasures_1a"), performance_measures); gc()
