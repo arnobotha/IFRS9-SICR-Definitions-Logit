@@ -48,7 +48,6 @@ require(ggthemes)
 require(extrafont) #remotes::install_version("Rttf2pt1", version = "1.3.8"); Sys.setenv(R_GSCMD="C:/Program Files/gs/gs9.55.0/bin/gswin32c.exe"); font_import(); loadfonts(); loadfonts(device="win")
 require(RColorBrewer)
 require(gridExtra)
-require(patchwork)
 
 #for modelling
 require(car)
@@ -59,10 +58,6 @@ require(parallelMap); require(parallel) # for multithreaded SVM-tuning using the
 require(pROC); require(ROCR) # both for conducting ROC-analyses
 require(DEoptimR)
 
-# for explainability measures
-require(DALEX)
-require(ranger)
-require(fastshap)
 
 # --------------------------------- GENERAL ------------------------------------
 
