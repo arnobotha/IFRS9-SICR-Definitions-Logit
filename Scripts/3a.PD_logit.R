@@ -88,10 +88,20 @@ table(datCredit_valid$DefaultStatus1_lead_12_max) %>% prop.table()
 # - Clean-up
 rm(datCredit_real_PD); gc()
 
+# - Save to disk (zip) for quick disk-based retrieval later
+pack.ffdf(paste0(genPath, "datPD_smp"), datCredit_smp)
+pack.ffdf(paste0(genPath, "datPD_train"), datCredit_train)
+pack.ffdf(paste0(genPath, "datPD_valid"), datCredit_valid)
+
 
 
 
 # ------ 3. Develop a basic PD-model
+
+# - Confirm necessary datasets are loaded into memory (useful step during interactive execution)
+if (!exists('datCredit_smp')) unpack.ffdf(paste0(genPath,"datPD_smp"), tempPath)
+if (!exists('datCredit_train')) unpack.ffdf(paste0(genPath,"datPD_train"), tempPath)
+if (!exists('datCredit_valid')) unpack.ffdf(paste0(genPath,"datPD_valid"), tempPath)
 
 # - Define input variables
 inputs_basic_logit <-  DefaultStatus1_lead_12_max ~ Age_Adj + Term + Principal_Real + Balance_Real + InterestRate_Margin +
@@ -121,6 +131,9 @@ varImport_logit(logitMod_basic, method="stdCoef_Goodman", sig_level=0.1, impPlot
 # - Residual deviance analysis
 resid_deviance_glm(logitMod_basic)
 ### RESULTS: Model fit is strained (3 diagnostics gave warnings)
+
+# - Save to disk (zip) for quick disk-based retrieval later
+pack.ffdf(paste0(genPath, "logit_model_PD"), logitMod_basic)
 
 
 
@@ -195,13 +208,17 @@ rm(datDefault_graph, port.aggr, port.aggr2, g, vLabel); gc()
 
 
 # --- 2. Variable importance
+
+# - Confirm necessary datasets are loaded into memory (useful step during interactive execution)
+if (!exists('logitMod_basic')) unpack.ffdf(paste0(genPath,"logit_model_PD"), tempPath)
+
 # - Variable importance
 datGraph <- varImport_logit(logitMod_basic, method="stdCoef_Goodman", sig_level=0.1, impPlot=F)$data
 
 # - Aesthetic engineering
 chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
 vLabel <- c("pmnt_method_grpStatement"="PayMethod-PAYROLL", "pmnt_method_grpMISSING_DATA"="PayMethod-MISSING",
-             "Balance_Real"="BalanceReal", "slc_acct_pre_lim_perc_imputed"="Prelim_Perc",
+             "Balance_Real"="BalanceReal", "slc_acct_pre_lim_perc_imputed"="Prepaid_Pc",
              "Principal_Real"="PrincipalReal", "pmnt_method_grpSalary/Suspense"="PayMethod-SALARY",
              "InterestRate_Margin"="InterestRate_Margin", "Age_Adj"="Age", "Term"="Term")
 

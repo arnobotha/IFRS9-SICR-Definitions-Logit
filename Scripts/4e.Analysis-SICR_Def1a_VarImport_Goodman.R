@@ -42,6 +42,67 @@ if(!exists('logit_model_chosen')) unpack.ffdf(paste0(genPath, "logit_model_", SI
 logit_model_1a_iv <- logit_model_chosen; rm(logit_model_chosen)
 
 
+# --- b) Anova-results for interpretation
+summary(logit_model_1a_i)
+summary(logit_model_1a_ii)
+summary(logit_model_1a_iii)
+summary(logit_model_1a_iv)
+
+# - g0_Delinq: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
+vOddsChange_g0_delinq <- c(round(exp(logit_model_1a_i$coefficients["g0_Delinq"])-1, digits=1), # 19.0 times greater odds
+                           round(exp(logit_model_1a_ii$coefficients["g0_Delinq"])-1, digits=1), # 8.0 times greater odds
+                           round(exp(logit_model_1a_iii$coefficients["g0_Delinq"])-1, digits=1), # 5.2 times greater odds
+                           round(exp(logit_model_1a_iv$coefficients["g0_Delinq"])-1, digits=1)) # 3.7 times greater odds
+mean(vOddsChange_g0_delinq) # 9 times greater on average
+# Would a 1-unit increase in g_0 trigger a SICR-decision theoretically, thereby embedding the backstop of IFRS 9?
+logit_model_1a_i$data[g0_Delinq==0, mean(Prob_chosen_1a_i)] # 59%
+logit_model_1a_i$data[g0_Delinq==1, mean(Prob_chosen_1a_i)] # 2.7%
+logit_model_1a_i$data[g0_Delinq==1, mean(Pred_chosen_1a_i)] # 99.82775%
+### RESULTS: Yes, for all but the most naively-chosen cut-offs
+
+# - slc_acct_roll_ever_24_imputed: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
+vOddsChange_slc_acct_roll_ever_24_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                           round(exp(logit_model_1a_ii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                           round(exp(logit_model_1a_iii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                           round(exp(logit_model_1a_iv$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1)) # 0.7 times greater odds
+mean(vOddsChange_slc_acct_roll_ever_24_imputed) # 0.7 times greater on average (i.e., 70% greater odds) 
+
+# - slc_acct_arr_dir_3SAME: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
+vOddsChange_slc_acct_arr_dir_3SAME <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.7 times greater odds
+                                               round(exp(logit_model_1a_ii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
+                                               round(exp(logit_model_1a_iii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
+                                               round(exp(logit_model_1a_iv$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1)) # -0.5 times greater odds
+mean(vOddsChange_slc_acct_arr_dir_3SAME) # -0.6 times greater on average (i.e., 60% smaller odds) 
+describe(logit_model_1a_i$data$slc_acct_arr_dir_3)
+### RESULTS: most prevalent bin is "SAME" (85%), i.e., maintaining zero-arrears decreases odds, which is sensibly
+
+# - pmnt_method_grpStatement: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
+vOddsChange_pmnt_method_grpStatement <- c(round(exp(logit_model_1a_i$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.7 times greater odds
+                                               round(exp(logit_model_1a_ii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
+                                               round(exp(logit_model_1a_iii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
+                                               round(exp(logit_model_1a_iv$coefficients["pmnt_method_grpStatement"])-1, digits=1)) # 0.8 times greater odds
+mean(vOddsChange_pmnt_method_grpStatement) # 0.775 times greater on average (i.e., 78% greater odds) 
+
+
+# - slc_acct_pre_lim_perc_imputed: Effect on SICR-odds of 10%-unit increase, i.e., change in odds ratio
+vOddsChange_slc_acct_pre_lim_perc_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                        round(exp(logit_model_1a_ii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                        round(exp(logit_model_1a_iii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                        round(exp(logit_model_1a_iv$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1)) # -0.3 times greater odds
+mean(vOddsChange_slc_acct_pre_lim_perc_imputed) # -0.3 times greater on average (i.e., 30% smaller odds) 
+
+
+# - InterestRate_Margin: Effect on SICR-odds of 1%-unit increase, i.e., change in odds ratio
+vOddsChange_InterestRate_Margin <- c(round(exp(logit_model_1a_i$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.1 times greater odds
+                                               round(exp(logit_model_1a_ii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
+                                               round(exp(logit_model_1a_iii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
+                                               round(exp(logit_model_1a_iv$coefficients["InterestRate_Margin"]*0.01)-1, digits=1)) # 0.2 times greater odds
+mean(vOddsChange_InterestRate_Margin) # 0.175 times greater on average (i.e., 30% greater odds) 
+describe(logit_model_1a_i$data$InterestRate_Margin)
+
+
+
+
 
 
 # --- 1. Variable importance
@@ -55,16 +116,23 @@ datGraph_1a_iv <- varImport_logit(logit_model_1a_iv, method="stdCoef_Goodman", s
 
 
 # --- b) Graphing
-# - Def 1a(i)
+
+# - Generic aesthetic engineering
+vLabel <- c("g0_Delinq"="g0_Delinq", "slc_acct_roll_ever_24_imputed"="RollEver_24",
+            "slc_acct_arr_dir_3SAME"="ArrearsDir_3-MILL", "slc_acct_arr_dir_3ROLLING"="ArrearsDir_3-INC",
+            "pmnt_method_grpStatement"="PayMethod-PAYROLL", "slc_acct_pre_lim_perc_imputed"="Prepaid_Pc",
+            "InterestRate_Margin"="InterestRate_Margin", "slc_acct_arr_dir_3MISSING_DATA"="ArrearsDir_3-MISSING", 
+            "M_Repo_Rate"="Repo_Rate", "BalanceLog" = "BalanceLog",  "PerfSpell_Num" = "PerfSpell_Num", 
+            "Term" = "Term", "pmnt_method_grpSalary/Suspense" = "PayMethod-SALARY",
+            "pmnt_method_grpMISSING_DATA" = "PayMethod-MISSING", "M_RealGDP_Growth" = "RealGDP_Growth", 
+            "M_DTI_Growth" = "DebtToIncome", "M_DTI_Growth_12" = "DebtToIncome_12",
+            "M_Inflation_Growth" = "Inflation_Growth")
+# NOTE: Given standardised input spaces for SICR-definition class 1a, we need only set the labels once
+
+
+# -- Def 1a(i)
 # - Aesthetic engineering
 chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
-vLabel <- c("g0_Delinq"="g0-Delinq", "slc_acct_roll_ever_24_imputed"="RollEver-24m",
-            "slc_acct_arr_dir_3SAME"="ArrearsDir-SAME", "slc_acct_arr_dir_3ROLLING"="ArrearsDir-ROLLING",
-            "pmnt_method_grpStatement"="PayMethod-STATEMENT", "slc_acct_pre_lim_perc_imputed"="Prepaid-Perc",
-            "InterestRate_Margin"="InterestRate_Margin", "slc_acct_arr_dir_3MISSING_DATA"="ArrearsDir-MISSING", 
-            "M_Repo_Rate"="Repo_Rate", "BalanceLog" = "Balance", "pmnt_method_grpSalary/Suspense" = "PayMethod-SALARY/SUSPENSE",
-            "pmnt_method_grpMISSING_DATA" = "PayMethod-MISSING", "M_RealGDP_Growth" = "RealGDP_Growth", "M_DTI_Growth" = "DTI_Growth",
-            "PerfSpell_Num" = "PerfSpell_Num", "Term" = "Term")
 
 # - Calculate contribution degrees to sum of importance measure across all variables
 # NOTE: These contributions are merely ancillary and for graphing purposes.
@@ -86,17 +154,10 @@ sumVarImport <- sum(datGraph_1a_i$Value_Abs, na.rm=T)
 # - Save graph
 ggsave(g, file=paste0(genFigPath, "VariableImportance_stdCoef_Goodman_1a_i.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
-# - Def 1a(ii)
+
+# -- Def 1a(ii)
 # - Aesthetic engineering
 chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
-vLabel <- c("g0_Delinq"="g0-Delinq", "slc_acct_roll_ever_24_imputed"="RollEver-24m",
-            "slc_acct_arr_dir_3SAME"="ArrearsDir-SAME", "pmnt_method_grpStatement"="PayMethod-STATEMENT",
-            "slc_acct_arr_dir_3ROLLING"="ArrearsDir-ROLLING", "slc_acct_pre_lim_perc_imputed"="Prepaid-Perc",
-            "InterestRate_Margin"="InterestRate_Margin", "BalanceLog" = "Balance",
-            "slc_acct_arr_dir_3MISSING_DATA"="ArrearsDir-MISSING", "M_DTI_Growth" = "DTI_Growth",
-            "M_DTI_Growth_12" = "DTI_Growth_12", "pmnt_method_grpSalary/Suspense" = "PayMethod-SALARY/SUSPENSE",
-            "PerfSpell_Num" = "PerfSpell_Num", "M_Repo_Rate"="Repo_Rate", "pmnt_method_grpMISSING_DATA" = "PayMethod-MISSING",
-            "TimeInPerfSpell" = "TimeInPerfSpell", "M_RealGDP_Growth" = "RealGDP_Growth", "M_Inflation_Growth" = "Inflation_Growth")
 
 # - Calculate contribution degrees to sum of importance measure across all variables
 # NOTE: These contributions are merely ancillary and for graphing purposes.
@@ -118,16 +179,10 @@ sumVarImport <- sum(datGraph_1a_ii$Value_Abs, na.rm=T)
 # - Save graph
 ggsave(g, file=paste0(genFigPath, "VariableImportance_stdCoef_Goodman_1a_ii.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
-# - Def 1a(iii)
+
+# -- Def 1a(iii)
 # - Aesthetic engineering
 chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
-vLabel <- c("g0_Delinq"="g0-Delinq", "slc_acct_roll_ever_24_imputed"="RollEver-24m",
-            "slc_acct_arr_dir_3SAME"="ArrearsDir-SAME", "pmnt_method_grpStatement"="PayMethod-STATEMENT",
-            "InterestRate_Margin"="InterestRate_Margin", "slc_acct_pre_lim_perc_imputed"="Prepaid-Perc",
-            "slc_acct_arr_dir_3ROLLING"="ArrearsDir-ROLLING", "M_DTI_Growth" = "DTI_Growth", "BalanceLog" = "Balance",
-            "M_DTI_Growth_12" = "DTI_Growth_12", "PerfSpell_Num" = "PerfSpell_Num", "slc_acct_arr_dir_3MISSING_DATA"="ArrearsDir-MISSING",
-            "TimeInPerfSpell" = "TimeInPerfSpell", "pmnt_method_grpSalary/Suspense" = "PayMethod-SALARY/SUSPENSE",
-            "M_Repo_Rate"="Repo_Rate", "M_RealGDP_Growth" = "RealGDP_Growth", "pmnt_method_grpMISSING_DATA" = "PayMethod-MISSING")
 
 # - Calculate contribution degrees to sum of importance measure across all variables
 # NOTE: These contributions are merely ancillary and for graphing purposes.
@@ -149,16 +204,10 @@ sumVarImport <- sum(datGraph_1a_iii$Value_Abs, na.rm=T)
 # - Save graph
 ggsave(g, file=paste0(genFigPath, "VariableImportance_stdCoef_Goodman_1a_iii.png"), width=1200/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
-# - Def 1a(iv)
+
+# -- Def 1a(iv)
 # - Aesthetic engineering
 chosenFont <- "Cambria"; dpi <- 200; colPalette <- "BrBG"
-vLabel <- c("g0_Delinq"="g0-Delinq", "slc_acct_roll_ever_24_imputed"="RollEver-24m",
-            "pmnt_method_grpStatement"="PayMethod-STATEMENT", "slc_acct_arr_dir_3SAME"="ArrearsDir-SAME",
-            "slc_acct_pre_lim_perc_imputed"="Prepaid-Perc", "InterestRate_Margin"="InterestRate_Margin",
-            "BalanceLog" = "Balance", "slc_acct_arr_dir_3ROLLING"="ArrearsDir-ROLLING", "M_DTI_Growth" = "DTI_Growth",
-            "M_DTI_Growth_12" = "DTI_Growth_12", "PerfSpell_Num" = "PerfSpell_Num", "slc_acct_arr_dir_3MISSING_DATA"="ArrearsDir-MISSING",
-            "pmnt_method_grpMISSING_DATA" = "PayMethod-MISSING", "pmnt_method_grpSalary/Suspense" = "PayMethod-SALARY/SUSPENSE",
-            "TimeInPerfSpell" = "TimeInPerfSpell", "M_Repo_Rate"="Repo_Rate", "Term" = "Term")
 
 # - Calculate contribution degrees to sum of importance measure across all variables
 # NOTE: These contributions are merely ancillary and for graphing purposes.
