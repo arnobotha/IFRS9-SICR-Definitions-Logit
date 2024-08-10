@@ -47,9 +47,9 @@ datSICR <- merge_macro_info(input_dat = datSICR); gc()
 datSICR[, ExpProb := predict(logit_model_chosen, newdata = datSICR, type="response")]
 
 # - Calculate account-level standard deviance of probability scores over loan life
-datSICR[, SICR_predict_variance := sd(ExpProb), by=list(LoanID)]
-datSICR_smp[, SICR_predict_variance := sd(ExpProb), by=list(LoanID)]
-datSICR_valid[, SICR_predict_variance := sd(Prob_chosen_1a_ii), by=list(LoanID)]
+datSICR[, SICR_predict_sd := sd(ExpProb), by=list(LoanID)]
+datSICR_smp[, SICR_predict_sd := sd(ExpProb), by=list(LoanID)]
+datSICR_valid[, SICR_predict_sd := sd(ExpProb), by=list(LoanID)]
 
 # - Create SICR-rate | Full set
 SICR_StartDte <- min(datSICR$Date, na.rm=T)

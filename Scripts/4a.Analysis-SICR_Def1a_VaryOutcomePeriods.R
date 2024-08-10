@@ -334,19 +334,19 @@ rm(port.aggr, datSICR_1a, datGraph_1a.aggr, g, g2, gmain, g4, port.aggr2, datSum
 
 # --- 1. Load each sample into memory and bind together successively
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(i)"), tempPath)
-datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_i, Prob_Score=Prob_chosen_1a_i)]); rm(datSICR_valid)
+datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(ii)"), tempPath)
-datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_ii, Prob_Score=Prob_chosen_1a_ii)]); rm(datSICR_valid)
+datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iii)"), tempPath)
-datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iii, Prob_Score=Prob_chosen_1a_iii)]); rm(datSICR_valid)
+datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iv)"), tempPath)
-datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iv, Prob_Score=Prob_chosen_1a_iv)]); rm(datSICR_valid)
+datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(v)"), tempPath)
-datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_v, Prob_Score=Prob_chosen_1a_v)]); rm(datSICR_valid)
+datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vi)"), tempPath)
-datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vi, Prob_Score=Prob_chosen_1a_vi)]); rm(datSICR_valid)
+datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vii)"), tempPath)
-datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vii, Prob_Score=Prob_chosen_1a_vii)]); rm(datSICR_valid)
+datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 
 
 
@@ -436,19 +436,19 @@ rm(pROC_obj1a_i_logit, pROC_obj1a_ii_logit, pROC_obj1a_iii_logit, pROC_obj1a_iv_
 
 # --- 1. Load each sample into memory and bind together successively
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(i)"), tempPath)
-datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_i, Prob_Score=Prob_chosen_1a_i)]); rm(datSICR_valid)
+datSICR_valid_1a1 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(ii)"), tempPath)
-datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_ii, Prob_Score=Prob_chosen_1a_ii)]); rm(datSICR_valid)
+datSICR_valid_1a2 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iii)"), tempPath)
-datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iii, Prob_Score=Prob_chosen_1a_iii)]); rm(datSICR_valid)
+datSICR_valid_1a3 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(iv)"), tempPath)
-datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_iv, Prob_Score=Prob_chosen_1a_iv)]); rm(datSICR_valid)
+datSICR_valid_1a4 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(v)"), tempPath)
-datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_v, Prob_Score=Prob_chosen_1a_v)]); rm(datSICR_valid)
+datSICR_valid_1a5 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vi)"), tempPath)
-datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vi, Prob_Score=Prob_chosen_1a_vi)]); rm(datSICR_valid)
+datSICR_valid_1a6 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_1a(vii)"), tempPath)
-datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=Pred_chosen_1a_vii, Prob_Score=Prob_chosen_1a_vii)]); rm(datSICR_valid)
+datSICR_valid_1a7 <- copy(datSICR_valid[, list(LoanID, Date, Outcome_Act=SICR_target, Outcome_Exp=ExpDisc, Prob_Score=ExpProb)]); rm(datSICR_valid)
 
 
 
