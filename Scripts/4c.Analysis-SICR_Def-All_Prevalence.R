@@ -202,5 +202,5 @@ ggplot(plot.obj,aes(x=k,y=Prevalence, group=Group)) + theme_minimal() +
 ### RESULTS: Prevalence decreases as k increases, like for class 1a
 
 # - Cleanup
-rm(datSICR.aggr, datSICR.aggr.final, vMeans_s_d1, vMeans_s_d2, plot.obj, datSICR); gc()
+rm(datSICR.aggr, datSICR.aggr.final, vMeans_s_d1, vMeans_s_d2, plot.obj); gc()
 

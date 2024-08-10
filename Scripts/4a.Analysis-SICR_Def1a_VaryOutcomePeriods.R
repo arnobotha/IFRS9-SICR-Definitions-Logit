@@ -88,7 +88,10 @@ percent(mean(performance_measures[1:6, AUC_prob])/100, accuracy=0.1) # 85.65%
 
 # - Store results
 write_xlsx(x=performance_measures,path=paste0(genObjPath, "PerfMeasures_1a.xlsx"))
-pack.ffdf(paste0(genObjPath, "PerformanceMeasures_1a"), performance_measures); gc()
+pack.ffdf(paste0(genObjPath, "PerformanceMeasures_1a"), performance_measures)
+
+# - Cleanup
+rm(performance_measures); gc()
 
 
 
@@ -192,17 +195,17 @@ datAnnotate <- data.table(Date=max_locales_1a, EventRate=max_1a, SICR_Def=c("1a(
 
 # --- 3. Graphing | Main Time Graph
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
-x.label.period <- 6
+vCol <- brewer.pal(7, "Dark2")
+xLabelPeriod <- 6
 chosenFont <- "Cambria"
-label.v <- c("1a(i)"=  bquote("1a(i):   "*italic(k)==3), 
+vLabel <- c("1a(i)"=  bquote("1a(i):   "*italic(k)==3), 
              "1a(ii)"= bquote("1a(ii):  "*italic(k)==6), 
              "1a(iii)"=bquote("1a(iii): "*italic(k)==9),
              "1a(iv)"= bquote("1a(iv):  "*italic(k)==12), 
              "1a(v)"=  bquote("1a(v):   "*italic(k)==18), 
              "1a(vi)"= bquote("1a(vi):  "*italic(k)==24), 
              "1a(vii)"=bquote("1a(vii): "*italic(k)==36))
-facet.v <- c("a_ShortTerm"="(a) Shorter outcome periods", "b_LongTerm"="(b) Longer outcome periods")
+vFacet <- c("a_ShortTerm"="(a) Shorter outcome periods", "b_LongTerm"="(b) Longer outcome periods")
 
 # - 1. Create main time series graph
 (g <- ggplot(port.aggr, aes(x=Date, y=EventRate, group=SICR_Def)) + theme_minimal() + 
@@ -217,12 +220,12 @@ facet.v <- c("a_ShortTerm"="(a) Shorter outcome periods", "b_LongTerm"="(b) Long
   geom_line(aes(colour=SICR_Def, linetype=SICR_Def), linewidth=0.2) + 
   geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
   # facets & scale options
-  facet_grid(SICR_Def_Facet ~., scales="free", labeller=labeller(SICR_Def_Facet=as_labeller(facet.v))) + 
-  scale_colour_manual(name="SICR-Definition", values=col.v, labels=label.v) + 
-  scale_shape_manual(name="SICR-Definition", values=c(16,17,15,3,7,8,16), labels=label.v) + 
-  scale_linetype_discrete(name="SICR-Definition", labels=label.v) + 
+  facet_grid(SICR_Def_Facet ~., scales="free", labeller=labeller(SICR_Def_Facet=as_labeller(vFacet))) + 
+  scale_colour_manual(name="SICR-Definition", values=vCol, labels=vLabel) + 
+  scale_shape_manual(name="SICR-Definition", values=c(16,17,15,3,7,8,16), labels=vLabel) + 
+  scale_linetype_discrete(name="SICR-Definition", labels=vLabel) + 
   scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
-  scale_x_date(date_breaks=paste0(x.label.period, " month"), date_labels = "%b %Y") )
+  scale_x_date(date_breaks=paste0(xLabelPeriod, " month"), date_labels = "%b %Y") )
 
 # - Create dataset for inset graph to show summaries
 datSummary <- data.table(k=c(3,6,9,12,18,24,36), SICR_Def=c("1a(i)", "1a(ii)", "1a(iii)", "1a(iv)", "1a(v)", "1a(vi)", "1a(vii)"), 
@@ -241,8 +244,8 @@ datSummary <- data.table(k=c(3,6,9,12,18,24,36), SICR_Def=c("1a(i)", "1a(ii)", "
   # main line graph with overlaid points
   geom_line(linetype="dotted", colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
   # facets & scale options
-  scale_colour_manual(name="", values=col.v, labels=label.v, guide="none") + 
-  scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=label.v, guide="none") + 
+  scale_colour_manual(name="", values=vCol, labels=vLabel, guide="none") + 
+  scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=vLabel, guide="none") + 
   scale_y_continuous(breaks=pretty_breaks(), label=percent))
 
 # - 3. Create inset graph for summaries; standard deviation
@@ -258,8 +261,8 @@ datSummary <- data.table(k=c(3,6,9,12,18,24,36), SICR_Def=c("1a(i)", "1a(ii)", "
     # main line graph with overlaid points
     geom_line(linetype="dotted", colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, labels=label.v, guide="none") + 
-    scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=label.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, labels=vLabel, guide="none") + 
+    scale_shape_manual(name="", values=c(16,17,15,3,7,8,16), labels=vLabel, guide="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent))
 
 # - Merge graphs using custom function annotation_custom2(), as defined in script 0
@@ -287,14 +290,14 @@ datGraph_1a.aggr2 <- subset(datGraph_1a.aggr, k %in% c(6,9,12) & Aggregate_Type 
        select=c("k","Aggregate_Type","Aggregate_Value"))
 
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
+vCol <- brewer.pal(7, "Dark2")
 chosenFont <- "Cambria"
-label.v <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
+vLabel <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
              "b_Rate_Max"=bquote("Max SICR-rate "*italic(b(k))), 
              "c_Rate_mean_postGFC"=bquote("Post-GFC SICR-mean "*italic(c(k))), 
              "d_Diff_First_Max"=bquote("Early-warning "*italic(b(k))-italic(a(k))), 
              "e_Diff_Max_Mean_postGFC"=bquote("Recovery "*italic(b(k))-italic(c(k))))
-size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
+vSize <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
             "d_Diff_First_Max"=0.8, "e_Diff_Max_Mean_postGFC"=0.8,
             "a_"=1.5, "b_"=1.5, "c_"=1.5, "d_"=2.5, "e_"=2.5)
 
@@ -310,10 +313,11 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
     # Encircle certain points
     geom_point(data=datGraph_1a.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
     # facets & scale options
-    scale_colour_manual(name="Summary Type", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
-    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
-    scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_colour_manual(name="Summary Type", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=vLabel) + 
+    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=vLabel) + 
+    scale_linewidth_manual(name="Summary Type", values=vSize, labels=vLabel) + 
+    scale_size_manual(name="Summary Type", values=vSize, labels=vLabel) + 
     guides(colour=guide_legend(ncol=1,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
@@ -323,7 +327,8 @@ dpi <- 200
 ggsave(g4, file=paste0(genFigPath, "Summaries_SICR-Incidence_Actual_1a.png"), width=1100/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
 # - Cleanup
-rm(port.aggr, datSICR_1a, datGraph_1a.aggr, g, g2, gmain, g4, port.aggr2, datSummary, datAnnotate)
+rm(port.aggr, datSICR_1a, datGraph_1a.aggr, g, g2, gmain, g3, g4, port.aggr2, datSummary, datAnnotate,
+   datGraph_1a, datGraph_1a.aggr2, vLabel); gc()
 
 
 
@@ -370,21 +375,21 @@ pROC_obj1a_vii_logit <- roc(formula= Outcome_Act~Prob_Score, data=datSICR_valid_
 
 # --- 3. Creating unified ROC-graph
 # - Prepare graphing parameters
-col.v <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
+vCol <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
 ltype.v <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash","solid")
 chosenFont <- "Cambria"
 
 # - Plot ROC-curves
 plot(pROC_obj1a_i_logit, auc.polygon=F, max.auc.polygon=T, grid=T, 
-     col = col.v[1], auc.polygon.col=col.v[2], lty=ltype.v[1],
+     col = vCol[1], auc.polygon.col=vCol[2], lty=ltype.v[1],
      xlab = "False Positive Rate (%)", ylab="True Positive Rate (%)",
      identity.col="gray25", identity=T,  legacy.axes=T, main="", yaxt='n', xaxt='n')
-plot(pROC_obj1a_ii_logit, add=T, col = col.v[2], lty=ltype.v[2])
-plot(pROC_obj1a_iii_logit, add=T, col = col.v[3], lty=ltype.v[3])
-plot(pROC_obj1a_iv_logit, add=T, col = col.v[4], lty=ltype.v[4])
-plot(pROC_obj1a_v_logit, add=T, col = col.v[5], lty=ltype.v[5])
-plot(pROC_obj1a_vi_logit, add=T, col = col.v[6], lty=ltype.v[6])
-plot(pROC_obj1a_vii_logit, add=T, col = col.v[7], lty=ltype.v[7])
+plot(pROC_obj1a_ii_logit, add=T, col = vCol[2], lty=ltype.v[2])
+plot(pROC_obj1a_iii_logit, add=T, col = vCol[3], lty=ltype.v[3])
+plot(pROC_obj1a_iv_logit, add=T, col = vCol[4], lty=ltype.v[4])
+plot(pROC_obj1a_v_logit, add=T, col = vCol[5], lty=ltype.v[5])
+plot(pROC_obj1a_vi_logit, add=T, col = vCol[6], lty=ltype.v[6])
+plot(pROC_obj1a_vii_logit, add=T, col = vCol[7], lty=ltype.v[7])
 
 # Add y-axis
 ticks <- seq(0,100,length.out=6)
@@ -406,7 +411,7 @@ auc.v <- c(paste0("1a(i)-LR.   AUC: ", sprintf("%.1f",pROC_obj1a_i_logit$auc), "
                   "%; Gini: ", sprintf("%.1f",pROC_obj1a_vi_logit$auc*2-100), "%"),
            paste0("1a(vii)-LR. AUC: ", sprintf("%.1f",pROC_obj1a_vii_logit$auc), "% ± ", sprintf("%.2f",(pROC_obj1a_vii_logit$ci[3]-pROC_obj1a_vii_logit$ci[1])/2),
                   "%; Gini: ", sprintf("%.1f",pROC_obj1a_vii_logit$auc*2-100), "%"))
-legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
+legend(x=73.4, y=67, legend=auc.v, col=vCol, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Add legend: Line-graph descriptions
 leg.v <- vector("expression",5)
@@ -417,7 +422,7 @@ leg.v[[4]] <- bquote("1a(iv):  Logistic Regression with"~italic(d)==1*","~italic
 leg.v[[5]] <- bquote("1a(v):   Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==18)
 leg.v[[6]] <- bquote("1a(vi):  Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==24)
 leg.v[[7]] <- bquote("1a(vii): Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==36)
-legend(x=82.6, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
+legend(x=82.6, y=33, legend=leg.v, col=vCol, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Save plot
 dev.copy(png, file=paste0(genFigPath,"ROC_1a_logit_prob_k-values.png"), width=1000, height=1000, res=170, family=chosenFont); dev.off()
@@ -472,21 +477,21 @@ pROC_obj1a_vii_logit_d <- roc(formula= Outcome_Act~Outcome_Exp, data=datSICR_val
 
 # --- 3. Creating unified ROC-graph
 # - Prepare graphing parameters
-col.v <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
+vCol <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7,9)]
 ltype.v <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash","solid")
 chosenFont <- "Cambria"
 
 # - Plot ROC-curves
 plot(pROC_obj1a_i_logit_d, auc.polygon=F, max.auc.polygon=T, grid=T, 
-     col = col.v[1], auc.polygon.col=col.v[2], lty=ltype.v[1],
+     col = vCol[1], auc.polygon.col=vCol[2], lty=ltype.v[1],
      xlab = "False Positive Rate (%)", ylab="True Positive Rate (%)",
      identity.col="gray25", identity=T,  legacy.axes=T, main="", yaxt='n', xaxt='n')
-plot(pROC_obj1a_ii_logit_d, add=T, col = col.v[2], lty=ltype.v[2])
-plot(pROC_obj1a_iii_logit_d, add=T, col = col.v[3], lty=ltype.v[3])
-plot(pROC_obj1a_iv_logit_d, add=T, col = col.v[4], lty=ltype.v[4])
-plot(pROC_obj1a_v_logit_d, add=T, col = col.v[5], lty=ltype.v[5])
-plot(pROC_obj1a_vi_logit_d, add=T, col = col.v[6], lty=ltype.v[6])
-plot(pROC_obj1a_vii_logit_d, add=T, col = col.v[7], lty=ltype.v[7])
+plot(pROC_obj1a_ii_logit_d, add=T, col = vCol[2], lty=ltype.v[2])
+plot(pROC_obj1a_iii_logit_d, add=T, col = vCol[3], lty=ltype.v[3])
+plot(pROC_obj1a_iv_logit_d, add=T, col = vCol[4], lty=ltype.v[4])
+plot(pROC_obj1a_v_logit_d, add=T, col = vCol[5], lty=ltype.v[5])
+plot(pROC_obj1a_vi_logit_d, add=T, col = vCol[6], lty=ltype.v[6])
+plot(pROC_obj1a_vii_logit_d, add=T, col = vCol[7], lty=ltype.v[7])
 
 # Add y-axis
 ticks <- seq(0,100,length.out=6)
@@ -508,7 +513,7 @@ auc.v <- c(paste0("1a(i)-LR.   AUC: ", sprintf("%.1f", pROC_obj1a_i_logit_d$auc)
                   "%; Gini: ", sprintf("%.1f", pROC_obj1a_vi_logit_d$auc*2-100), "%"),
            paste0("1a(vii)-LR. AUC: ", sprintf("%.1f", pROC_obj1a_vii_logit_d$auc), "% ± ", sprintf("%.2f",(pROC_obj1a_vii_logit_d$ci[3]-pROC_obj1a_vii_logit_d$ci[1])/2),
                   "%; Gini: ", sprintf("%.1f", pROC_obj1a_vii_logit_d$auc*2-100), "%"))
-legend(x=73.4, y=67, legend=auc.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
+legend(x=73.4, y=67, legend=auc.v, col=vCol, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Add legend: Line-graph descriptions
 leg.v <- vector("expression",5)
@@ -519,7 +524,7 @@ leg.v[[4]] <- bquote("1a(iv):  Logistic Regression with"~italic(d)==1*","~italic
 leg.v[[5]] <- bquote("1a(v):   Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==18)
 leg.v[[6]] <- bquote("1a(vi):  Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==24)
 leg.v[[7]] <- bquote("1a(vii): Logistic Regression with"~italic(d)==1*","~italic(s)==1*","~italic(k)==36)
-legend(x=82.6, y=33, legend=leg.v, col=col.v, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
+legend(x=82.6, y=33, legend=leg.v, col=vCol, lwd=2, horiz=F, lty=ltype.v, cex=0.75, y.intersp=0.95)
 
 # Save plot
 dev.copy(png, file=paste0(genFigPath,"ROC_1a_logit_disc_k-values.png"), width=1000, height=1000, res=170, family=chosenFont); dev.off()

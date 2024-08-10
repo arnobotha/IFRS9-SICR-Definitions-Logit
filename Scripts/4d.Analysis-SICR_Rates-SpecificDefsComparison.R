@@ -140,8 +140,8 @@ port.aggr_1k9s <- datSICR[SICR_def==0 & d==1 & k==9 & Date <= SICR_EndDte & ((s=
                           by=list(SICR_Def, Date)] %>% setkey(SICR_Def,Date)
 
 # - Recast/pivot data in order to create useful summaries across all time series
-port.aggr2_1k6s <- port.aggr_1k6s %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
-port.aggr2_1k9s <- port.aggr_1k9s %>% pivot_wider(id_cols = c(Date, SICR_Def), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2_1k6s <- port.aggr_1k6s %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
+port.aggr2_1k9s <- port.aggr_1k9s %>% pivot_wider(id_cols = c(Date), names_from = c(SICR_Def), values_from = c(EventRate)) %>% as.data.table()
 
 # - Calculate useful summaries over rate time series
 stdevs_1k6s_full <- c(sd(port.aggr2_1k6s$`1a(ii)`, na.rm=T), sd(port.aggr2_1k6s$`1b(ii)`, na.rm=T), 
@@ -196,10 +196,10 @@ describe(port.aggr$SICR_Def_s)
 
 # --- 3. Graphing | Main Time Graph for selected SICR-definitions
 # - Graphing parameters
-col.v <- brewer.pal(8, "Dark2")
-x.label.period <- 6
+vCol <- brewer.pal(8, "Dark2")
+xLabelPeriod <- 6
 chosenFont <- "Cambria"
-label.v <- c("a_s1"=  bquote("1a:   "*italic(s)==1), 
+vLabel <- c("a_s1"=  bquote("1a:   "*italic(s)==1), 
              "b_s2"=bquote("1b: "*italic(s)==2),
              "c_s3"= bquote("1c:  "*italic(s)==3))
 
@@ -213,15 +213,15 @@ label.v <- c("a_s1"=  bquote("1a:   "*italic(s)==1),
     # overlay maxima
     geom_point(data=datAnnotate, aes(x=Date,y=EventRate,group=SICR_Def_s,colour=SICR_Def_s), size=5, shape=1, show.legend=F) +     
     # main line graph with overlaid points
-    geom_line(aes(colour=SICR_Def_s, linetype=SICR_Def_s), size=0.2) + 
+    geom_line(aes(colour=SICR_Def_s, linetype=SICR_Def_s), linewidth=0.2) + 
     geom_point(aes(colour=SICR_Def_s, shape=SICR_Def_s), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
-    scale_colour_manual(name="SICR-Definition", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=label.v) + 
-    scale_linetype_discrete(name="SICR-Definition", labels=label.v) + 
+    scale_colour_manual(name="SICR-Definition", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=vLabel) + 
+    scale_linetype_discrete(name="SICR-Definition", labels=vLabel) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
-    scale_x_date(date_breaks=paste0(x.label.period, " month"), date_labels = "%b %Y") )
+    scale_x_date(date_breaks=paste0(xLabelPeriod, " month"), date_labels = "%b %Y") )
 
 
 # - 2. Inset graphs for summarizing key statistics from time graphs of 1b, 1c
@@ -244,9 +244,9 @@ datSummary_1k9s <- data.table(s=c(1,2,3), SICR_Def=c("a_s1", "b_s2", "c_s3"),
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=3)) + 
@@ -262,9 +262,9 @@ datSummary_1k9s <- data.table(s=c(1,2,3), SICR_Def=c("a_s1", "b_s2", "c_s3"),
           plot.background=element_rect(color="white"),
           plot.margin=unit(c(0,0,0,0), "mm")) + 
     # main line graph with overlaid points
-    geom_line(aes(linetype=Summary_Type), colour="gray20", size=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
+    geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=3)) + 

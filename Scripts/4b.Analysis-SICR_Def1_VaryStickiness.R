@@ -65,6 +65,8 @@ sprintf("%.2f", performance_measures$std_dev_SICR_rate_Act*100)[5:12]
 plot(performance_measures$k, performance_measures$std_dev, type="b") # called "flexibility \omega" in main text
 plot(performance_measures$k, performance_measures$std_dev_SICR_rate_Act, type="b") # called "instability \sigma" in main text
 
+# - Cleanup
+rm(performance_measures); gc()
 
 
 
@@ -149,10 +151,10 @@ datAnnotate <- data.table(Date=max_locales_1b, EventRate=max_1b, SICR_Def=c("1b(
 
 # --- 3. Graphing | Main Time Graph
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
-x.label.period <- 6
+vCol <- brewer.pal(7, "Dark2")
+xLabelPeriod <- 6
 chosenFont <- "Cambria"
-label.v <- c("1b(i)"=  bquote("1b(i):   "*italic(k)==3), 
+vLabel <- c("1b(i)"=  bquote("1b(i):   "*italic(k)==3), 
              "1b(ii)"= bquote("1b(ii):  "*italic(k)==6), 
              "1b(iii)"=bquote("1b(iii): "*italic(k)==9),
              "1b(iv)"= bquote("1b(iv):  "*italic(k)==12))
@@ -171,11 +173,11 @@ label.v <- c("1b(i)"=  bquote("1b(i):   "*italic(k)==3),
     geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
-    scale_colour_manual(name="SICR-Definition", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=label.v) + 
-    scale_linetype_discrete(name="SICR-Definition", labels=label.v) + 
+    scale_colour_manual(name="SICR-Definition", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=vLabel) + 
+    scale_linetype_discrete(name="SICR-Definition", labels=vLabel) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
-    scale_x_date(date_breaks=paste0(x.label.period, " month"), date_labels = "%b %Y") )
+    scale_x_date(date_breaks=paste0(xLabelPeriod, " month"), date_labels = "%b %Y") )
 
 # - Create dataset for inset graph to show summaries
 datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1b(i)", "1b(ii)", "1b(iii)", "1b(iv)"), 
@@ -194,7 +196,7 @@ datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1b(i)", "1b(ii)", "1b(iii)",
     # main line graph with overlaid points
     geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=8)) + 
@@ -223,14 +225,14 @@ datGraph_1b.aggr2 <- subset(datGraph_1b.aggr, k %in% c(6,9) & Aggregate_Type %in
                             select=c("k","Aggregate_Type","Aggregate_Value"))
 
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
+vCol <- brewer.pal(7, "Dark2")
 chosenFont <- "Cambria"
-label.v <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
+vLabel <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
              "b_Rate_Max"=bquote("Max SICR-rate "*italic(b(k))), 
              "c_Rate_mean_postGFC"=bquote("Post-GFC SICR-mean "*italic(c(k))), 
              "d_Diff_First_Max"=bquote("Early-warning "*italic(b(k))-italic(a(k))), 
              "e_Diff_Max_Mean_postGFC"=bquote("Recovery "*italic(b(k))-italic(c(k))))
-size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
+vSize <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
             "d_Diff_First_Max"=0.8, "e_Diff_Max_Mean_postGFC"=0.8,
             "a_"=1.5, "b_"=1.5, "c_"=1.5, "d_"=2.5, "e_"=2.5)
 
@@ -246,11 +248,11 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
     # Encircle certain points
     geom_point(data=datGraph_1b.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
     # facets & scale options
-    scale_colour_manual(name="Summary Type", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
-    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
-    scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
-    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_colour_manual(name="Summary Type", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=vLabel) + 
+    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=vLabel) + 
+    scale_size_manual(name="Summary Type", values=vSize, labels=vLabel) + 
+    scale_linewidth_manual(name="Summary Type", values=vSize, labels=vLabel) + 
     guides(colour=guide_legend(ncol=1,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
@@ -260,7 +262,7 @@ dpi <- 200
 ggsave(g4, file=paste0(genFigPath, "Summaries_SICR-Incidence_Actual_1b.png"), width=1100/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
 # - Cleanup
-rm(port.aggr, datGraph_1b, datGraph_1b.aggr2, g, g2, gmain, g4, port.aggr2, datSummary, datAnnotate)
+rm(port.aggr, datGraph_1b, g, g2, gmain, g4, port.aggr2, datSummary, datAnnotate)
 
 
 
@@ -346,10 +348,10 @@ datAnnotate <- data.table(Date=max_locales_1c, EventRate=max_1c, SICR_Def=c("1c(
 
 # --- 3. Graphing | Main Time Graph
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
-x.label.period <- 6
+vCol <- brewer.pal(7, "Dark2")
+xLabelPeriod <- 6
 chosenFont <- "Cambria"
-label.v <- c("1c(i)"=  bquote("1c(i):   "*italic(k)==3), 
+vLabel <- c("1c(i)"=  bquote("1c(i):   "*italic(k)==3), 
              "1c(ii)"= bquote("1c(ii):  "*italic(k)==6), 
              "1c(iii)"=bquote("1c(iii): "*italic(k)==9),
              "1c(iv)"= bquote("1c(iv):  "*italic(k)==12))
@@ -368,11 +370,11 @@ label.v <- c("1c(i)"=  bquote("1c(i):   "*italic(k)==3),
     geom_point(aes(colour=SICR_Def, shape=SICR_Def), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
-    scale_colour_manual(name="SICR-Definition", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=label.v) + 
-    scale_linetype_discrete(name="SICR-Definition", labels=label.v) + 
+    scale_colour_manual(name="SICR-Definition", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=vLabel) + 
+    scale_linetype_discrete(name="SICR-Definition", labels=vLabel) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
-    scale_x_date(date_breaks=paste0(x.label.period, " month"), date_labels = "%b %Y") )
+    scale_x_date(date_breaks=paste0(xLabelPeriod, " month"), date_labels = "%b %Y") )
 
 # - Create dataset for inset graph to show summaries
 datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1c(i)", "1c(ii)", "1c(iii)", "1c(iv)"), 
@@ -391,7 +393,7 @@ datSummary <- data.table(k=c(3,6,9,12), SICR_Def=c("1c(i)", "1c(ii)", "1c(iii)",
     # main line graph with overlaid points
     geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=8)) + 
@@ -420,14 +422,14 @@ datGraph_1c.aggr2 <- subset(datGraph_1c.aggr, k %in% c(6,9) & Aggregate_Type %in
                             select=c("k","Aggregate_Type","Aggregate_Value"))
 
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
+vCol <- brewer.pal(7, "Dark2")
 chosenFont <- "Cambria"
-label.v <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
+vLabel <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
              "b_Rate_Max"=bquote("Max SICR-rate "*italic(b(k))), 
              "c_Rate_mean_postGFC"=bquote("Post-GFC SICR-mean "*italic(c(k))), 
              "d_Diff_First_Max"=bquote("Early-warning "*italic(b(k))-italic(a(k))), 
              "e_Diff_Max_Mean_postGFC"=bquote("Recovery "*italic(b(k))-italic(c(k))))
-size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
+vSize <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
             "d_Diff_First_Max"=0.8, "e_Diff_Max_Mean_postGFC"=0.8,
             "a_"=1.5, "b_"=1.5, "c_"=1.5, "d_"=2.5, "e_"=2.5)
 
@@ -443,11 +445,11 @@ size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
     # Encircle certain points
     geom_point(data=datGraph_1c.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
     # facets & scale options
-    scale_colour_manual(name="Summary Type", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
-    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
-    scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
-    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_colour_manual(name="Summary Type", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=vLabel) + 
+    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=vLabel) + 
+    scale_size_manual(name="Summary Type", values=vSize, labels=vLabel) + 
+    scale_linewidth_manual(name="Summary Type", values=vSize, labels=vLabel) + 
     guides(colour=guide_legend(ncol=1,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
@@ -457,7 +459,7 @@ dpi <- 200
 ggsave(g4, file=paste0(genFigPath, "Summaries_SICR-Incidence_Actual_1c.png"), width=1100/dpi, height=1000/dpi, dpi=dpi, bg="white")
 
 # - Cleanup
-rm(port.aggr, datGraph_1c, datGraph_1c.aggr2, g, g2, gmain, g4, port.aggr2, datSummary, datAnnotate)
+rm(port.aggr, datGraph_1c, g, g2, gmain, g4, port.aggr2, datSummary, datAnnotate)
 
 
 
@@ -540,10 +542,10 @@ describe(port.aggr$SICR_Def_k)
 
 # --- 2. Graphing | Main Time Graph + Inset graphs
 # - Graphing parameters
-col.v <- brewer.pal(8, "Dark2")
-x.label.period <- 6
+vCol <- brewer.pal(8, "Dark2")
+xLabelPeriod <- 6
 chosenFont <- "Cambria"
-label.v <- c("a_i"=  bquote("(i):   "*italic(k)==3),
+vLabel <- c("a_i"=  bquote("(i):   "*italic(k)==3),
              "b_ii"= bquote("(ii):  "*italic(k)==6), 
              "c_iii"=bquote("(iii): "*italic(k)==9),
              "d_iv"= bquote("(iv):  "*italic(k)==12))
@@ -562,11 +564,11 @@ label.v <- c("a_i"=  bquote("(i):   "*italic(k)==3),
     geom_point(aes(colour=SICR_Def_k, shape=SICR_Def_k), size=0.8) + 
     # facets & scale options
     facet_grid(Facet_math ~., scales="free", labeller=label_parsed) + 
-    scale_colour_manual(name="SICR-Definition", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=label.v) + 
-    scale_linetype_discrete(name="SICR-Definition", labels=label.v) + 
+    scale_colour_manual(name="SICR-Definition", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="SICR-Definition", values=c(16,17,15,8), labels=vLabel) + 
+    scale_linetype_discrete(name="SICR-Definition", labels=vLabel) + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
-    scale_x_date(date_breaks=paste0(x.label.period, " month"), date_labels = "%b %Y") )
+    scale_x_date(date_breaks=paste0(xLabelPeriod, " month"), date_labels = "%b %Y") )
 
 
 # - 2. Inset graphs for summarizing key statistics from time graphs of 1b, 1c
@@ -591,7 +593,7 @@ datSummary_1c <- data.table(k=c(3,6,9,12), SICR_Def=c("a_i", "b_ii", "c_iii", "d
     # main line graph with overlaid points
     geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=8)) + 
@@ -609,7 +611,7 @@ datSummary_1c <- data.table(k=c(3,6,9,12), SICR_Def=c("a_i", "b_ii", "c_iii", "d
     # main line graph with overlaid points
     geom_line(aes(linetype=Summary_Type), colour="gray20", linewidth=0.3) + geom_point(aes(colour=SICR_Def, shape=SICR_Def)) + 
     # facets & scale options
-    scale_colour_manual(name="", values=col.v, guide="none") + 
+    scale_colour_manual(name="", values=vCol, guide="none") + 
     scale_shape_manual(name="", values=c(16,17,15,8), guide="none") + 
     scale_linetype_discrete(name="", labels=c("SICR_mean"="Mean", "SICR_sd"="Standard deviation")) + 
     scale_x_continuous(breaks=pretty_breaks(n=8)) + 
@@ -637,14 +639,14 @@ datGraph_1bc.aggr <- rbind(data.table(datGraph_1b.aggr,Facet="1b"), data.table(d
 datGraph_1bc.aggr2 <- rbind(data.table(datGraph_1b.aggr2,Facet="1b"), data.table(datGraph_1c.aggr2,Facet="1c"))
   
 # - Graphing parameters
-col.v <- brewer.pal(7, "Dark2")
+vCol <- brewer.pal(7, "Dark2")
 chosenFont <- "Cambria"
-label.v <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
+vLabel <- c("a_Rate_First"=bquote("Earliest SICR-rate "*italic(a(k))), 
              "b_Rate_Max"=bquote("Max SICR-rate "*italic(b(k))), 
              "c_Rate_mean_postGFC"=bquote("Post-GFC SICR-mean "*italic(c(k))), 
              "d_Diff_First_Max"=bquote("Early-warning "*italic(b(k))-italic(a(k))), 
              "e_Diff_Max_Mean_postGFC"=bquote("Recovery "*italic(b(k))-italic(c(k))))
-size.v <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
+vSize <- c("a_Rate_First"=0.4, "b_Rate_Max"=0.4, "c_Rate_mean_postGFC"=0.4,
             "d_Diff_First_Max"=0.8, "e_Diff_Max_Mean_postGFC"=0.8,
             "a_"=1.5, "b_"=1.5, "c_"=1.5, "d_"=2.5, "e_"=2.5)
 datGraph_1bc.aggr[, Facet_math := factor(Facet,labels = c("'SICR-Definition class 1b ('*italic(d)==1*','~italic(s)==2*')'",
@@ -665,11 +667,11 @@ datGraph_1bc.aggr2[, Facet_math := factor(Facet,labels = c("'SICR-Definition cla
     geom_point(data=datGraph_1bc.aggr2, aes(x=k, y=Aggregate_Value, group=Aggregate_Type), size=7, colour="black", shape=1) + 
     # facets & scale options
     facet_grid(.~Facet_math, scales="free", labeller=label_parsed) + 
-    scale_colour_manual(name="Summary Type", values=col.v, labels=label.v) + 
-    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=label.v) + 
-    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=label.v) + 
-    scale_size_manual(name="Summary Type", values=size.v, labels=label.v) + 
-    scale_linewidth_manual(name="Summary Type", values=size.v, labels=label.v) + 
+    scale_colour_manual(name="Summary Type", values=vCol, labels=vLabel) + 
+    scale_shape_manual(name="Summary Type", values=c(7,8,15, 16, 17), labels=vLabel) + 
+    scale_linetype_manual(name="Summary Type", values=c("twodash", "dotdash", "dotted", "solid", "dashed"), labels=vLabel) + 
+    scale_size_manual(name="Summary Type", values=vSize, labels=vLabel) + 
+    scale_linewidth_manual(name="Summary Type", values=vSize, labels=vLabel) + 
     guides(colour=guide_legend(ncol=3,byrow=T), size="none") + 
     scale_y_continuous(breaks=pretty_breaks(), label=percent) + 
     scale_x_continuous(breaks=pretty_breaks(n=6)) )
