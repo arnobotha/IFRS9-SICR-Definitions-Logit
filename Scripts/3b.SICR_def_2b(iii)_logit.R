@@ -924,7 +924,6 @@ rm(datSICR_graph, port.aggr, port.aggr2); gc()
 
 
 # --- 7.1 Performance measures
-
 performance_measures_2b_iii <- data.frame(SICR_definition = paste0(SICR_label, "_logit"),
                                           d=p.d, s=p.s, k=p.k,
                                           AUC_prob = c(round(pROC_obj_chosenb$auc,digits=1)),
@@ -951,5 +950,3 @@ pack.ffdf(paste0(genObjPath, "performance_measures_", SICR_label), performance_m
 
 # --- 7.2 Trained logit model
 pack.ffdf(paste0(genPath, "logit_model_", SICR_label), logit_model_chosen); gc()
-
-

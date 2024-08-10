@@ -1208,7 +1208,6 @@ rm(datSICR_graph, port.aggr, port.aggr2); gc()
 
 
 # --- 7.1 Performance measures
-
 performance_measures_2b_ii <- data.frame(SICR_definition = paste0(SICR_label, "_logit"),
                                          d=p.d, s=p.s, k=p.k,
                                          AUC_prob = c(round(pROC_obj_chosenb$auc,digits=1)),

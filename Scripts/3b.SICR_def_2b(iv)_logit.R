@@ -735,13 +735,13 @@ summary(logit_model_chosen)
 # [Ad hoc] PD ratio is not statistically significant (p-value of 0.93945 and standard error of 0.000086561)
 
 # - Score data using fitted model
-datSICR_train[, Prob_chosen_2b_iv := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
-datSICR_valid[, Prob_chosen_2b_iv := predict(logit_model_chosen, newdata = datSICR_valid, type="response")]
+datSICR_train[, ExpProb := predict(logit_model_chosen, newdata = datSICR_train, type="response")] 
+datSICR_valid[, ExpProb := predict(logit_model_chosen, newdata = datSICR_valid, type="response")]
 datSICR_smp[, ExpProb := predict(logit_model_chosen, newdata = datSICR_smp, type="response")]
 
 # - Compute the AUC
-auc(datSICR_train$SICR_target, datSICR_train$Prob_chosen_2b_iv) # 85.4%
-auc(datSICR_valid$SICR_target, datSICR_valid$Prob_chosen_2b_iv) # 83.46%
+auc(datSICR_train$SICR_target, datSICR_train$ExpProb) # 85.4%
+auc(datSICR_valid$SICR_target, datSICR_valid$ExpProb) # 83.46%
 auc(datSICR_smp$SICR_target, datSICR_smp$ExpProb) # 84.64%
 
 
@@ -751,7 +751,7 @@ labels.v <- c(bquote(italic(C)[0]),
               bquote(italic(C)[1]))
 
 # - Plot double density across both classes
-ggplot( data=datSICR_valid, aes(x=Prob_chosen_2b_iv)) + theme_bw() + 
+ggplot( data=datSICR_valid, aes(x=ExpProb)) + theme_bw() + 
         geom_histogram(aes(y=after_stat(density), colour=factor(SICR_target), fill=factor(SICR_target)), alpha=0.7,
                        bins=round(2*datSICR_valid[,.N]^(1/3)), position="identity") + # using Rice's rule
         geom_density(aes(colour=factor(SICR_target), fill=factor(SICR_target)), linewidth=0.8, alpha=0.5) + 
@@ -784,8 +784,8 @@ optimal.cutpoint.GenYouden <- Gen_Youd_Ind(logit_model_chosen, datSICR_valid, "S
 
 # - Set final cut-off
 (logistic_cutoff <- optimal.cutpoint.GenYouden$cutoff)
-datSICR_train[, Pred_chosen_2b_iv := ifelse(Prob_chosen_2b_iv >= logistic_cutoff, 1, 0)]
-datSICR_valid[, Pred_chosen_2b_iv := ifelse(Prob_chosen_2b_iv >= logistic_cutoff, 1, 0)]
+datSICR_train[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
+datSICR_valid[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 datSICR_smp[, ExpDisc := ifelse(ExpProb >= logistic_cutoff, 1, 0)]
 
 # - Save to disk (zip) for quick disk-based retrieval later
@@ -809,22 +809,22 @@ alpha <- 0.05
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_", SICR_label), tempPath)
 
 # - Create ROC-object | probabilities vs discrete labels
-pROC_obj_chosena <- roc(formula= SICR_target~Pred_chosen_2b_iv, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
-pROC_obj_chosenb <- roc(formula= SICR_target~Prob_chosen_2b_iv, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj_chosena <- roc(formula= SICR_target~ExpDisc, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+pROC_obj_chosenb <- roc(formula= SICR_target~ExpProb, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
 
 
 # --- 6.2 Compute other performance measures
 
 # - Standard deviation
-# used to represent the stability of the SICR-definition
-datSICR_valid[, SICR_predict_variance := sd(Prob_chosen_2b_iv), by=list(LoanID)]
-standard_deviation <- round(mean(datSICR_valid$SICR_predict_variance, na.rm=T)*100, digits=1)
+# used in evaluating the dynamicity of SICR-predictions
+datSICR_smp[, SICR_predict_sd := sd(ExpProb), by=list(LoanID)]
+standard_deviation <- round(mean(datSICR_smp$SICR_predict_sd, na.rm=T)*100, digits=1)
 
 # - Confusion matrix
-conf_mat <- datSICR_valid[, list(TN=sum(ifelse(SICR_target == 0 & Pred_chosen_2b_iv == 0, 1, 0)),
-                                 FP=sum(ifelse(SICR_target == 0 & Pred_chosen_2b_iv == 1, 1, 0)),
-                                 TP=sum(ifelse(SICR_target == 1 & Pred_chosen_2b_iv == 1, 1, 0)),
-                                 FN=sum(ifelse(SICR_target == 1 & Pred_chosen_2b_iv == 0, 1, 0)))]
+conf_mat <- datSICR_valid[, list(TN=sum(ifelse(SICR_target == 0 & ExpDisc == 0, 1, 0)),
+                                 FP=sum(ifelse(SICR_target == 0 & ExpDisc == 1, 1, 0)),
+                                 TP=sum(ifelse(SICR_target == 1 & ExpDisc == 1, 1, 0)),
+                                 FN=sum(ifelse(SICR_target == 1 & ExpDisc == 0, 1, 0)))]
 conf_mat[, positives := TP + FN]
 conf_mat[, negatives := TN + FP]
 
@@ -844,7 +844,7 @@ if (!exists('logistic_cutoff')) logistic_cutoff <- 0.2442361
 
 # A few things of concern:
 # 1) Volatility in event rates due to relatively low sampling volumes in validation set
-# 2) 0-counts over 20006-2007 periods using discretised output [Pred_chosen_2b_iv]
+# 2) 0-counts over 20006-2007 periods using discretised output [ExpDisc]
 # 3) Trend of "underprediction" (expected red line consistently being underneath actual green line). "overprediction" would have been 
 #   more palatable given our preference for greater sensitivity (T^+ rate) over low false positive rate under IFRS 9
 #   But this largely comes down to cut-off selection when dealing with probabilistic classifiers ..
@@ -928,7 +928,6 @@ rm(datSICR_graph, port.aggr, port.aggr2); gc()
 
 
 # --- 7.1 Performance measures
-
 performance_measures_2b_iv <- data.frame(SICR_definition = paste0(SICR_label, "_logit"),
                                          d=p.d, s=p.s, k=p.k,
                                          AUC_prob = c(round(pROC_obj_chosenb$auc,digits=1)),
