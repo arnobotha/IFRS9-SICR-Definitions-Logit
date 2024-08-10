@@ -42,7 +42,7 @@ if (!exists(perfObjName)) {
 
 # - Score full dataset with the underlying SICR-model
 # Join the macroeconomic variables
-datSICR <- merge_macro_info(input_dat = datSICR)
+datSICR <- merge_macro_info(input_dat = datSICR); gc()
 # Score full set with SICR-model
 datSICR[, ExpProb := predict(logit_model_chosen, newdata = datSICR, type="response")]
 
@@ -75,11 +75,11 @@ port.aggr_valid <- datSICR_valid[SICR_def==0, list(EventRate = sum(as.numeric(le
 # ------ 2. Full dataset analysis D
 
 # - General statistics
-comma(datSICR[, .N]) 
-comma(length(unique(datSICR$LoanID))) 
+comma(datSICR[, .N])
+comma(length(unique(datSICR$LoanID)))
 ### RESULTS: ~521k unique loans, though we have 34m observations
 describe(datSICR[,list(Periods=.N), by=list(LoanID)]$Periods)
-### RESULTS: mean number of SICR-observations of 65.64 per account, [1,152].
+### RESULTS: mean number of SICR-observations of 65.64 (median: 56) per account, spanning [1,152].
 
 # - Prevalence \phi_{dsk}
 datSICR[, list(SICR_Obs = sum(as.numeric(levels(SICR_target))[SICR_target], na.rm=T), k = mean(k),
@@ -102,11 +102,11 @@ percent(sd(port.aggr_full$EventRate, na.rm=T), accuracy=0.01)
 # ------ 3. Subsampled set analysis D_S
 
 # - General statistics
-comma(datSICR_smp[, .N]) 
-comma(length(unique(datSICR_smp$LoanID))) 
-### RESULTS: 179,261 unique loans, though we have ~250k observations in this sample (as intended)
+comma(datSICR_smp[, .N])
+comma(length(unique(datSICR_smp$LoanID)))
+### RESULTS: ~179k unique loans, though we have ~250k observations in this sample (as intended)
 describe(datSICR_smp[,list(Periods=.N), by=list(LoanID)]$Periods)
-### RESULTS: mean number of SICR-observations of 1.394 per account, [1,9].
+### RESULTS: mean number of SICR-observations of 1.394 per account, spanning [1,9].
 # This is a great reduction compared to the full set, simply due to subsampling
 
 # - Prevalence
@@ -132,22 +132,23 @@ round(sd(port.aggr_sub$EventRate, na.rm=T), digits=4) == perfMeasures$std_dev_SI
 # ------ 4. Validation set analysis D_V
 
 # - General statistics
-comma(datSICR_valid[, .N]) 
-comma(length(unique(datSICR_valid$LoanID))) 
+comma(datSICR_valid[, .N])
+comma(length(unique(datSICR_valid$LoanID)))
 ### RESULTS: ~67k unique loans, though we have ~75k observations in this sample (as intended)
 describe(datSICR_valid[,list(Periods=.N), by=list(LoanID)]$Periods)
-### RESULTS: mean number of SICR-observations of 1.115 per account, [1,4].
+### RESULTS: mean number of SICR-observations of 1.115 per account, spanning [1,4].
 # This is a great reduction compared to the full set, simply due to subsampling
 
 # - Prevalence
 datSICR_valid[, list(SICR_Obs = sum(as.numeric(levels(SICR_target))[SICR_target], na.rm=T), k = mean(k),
                    Prevalence = mean(as.numeric(levels(SICR_target))[SICR_target], na.rm=T))]
-### RESULTS: ~15k SICR-events, prevalence of 6.13%. Practically unchanged from full sample and deemed safe.
+### RESULTS: ~4.6k SICR-events, prevalence of 6.2%, noticeably larger than previous sets
 
 # - Prediction dynamicity \omega_{dsk}
 # NOTE: corresponds to perfMeasures$std_dev
+round(mean(datSICR_valid$SICR_predict_variance, na.rm=T)*100, digits=1)
 round(mean(datSICR_valid$SICR_predict_variance, na.rm=T)*100, digits=1) == perfMeasures$std_dev # TRUE
-### RESULTS: 3.6% standard deviation
+### RESULTS: 3.6% standard deviation. Note that the above relation may no longer hold if we change the set to D_S
 
 # - Instability \sigma_{dsk}
 # NOTE: corresponds to perfMeasures$std_dev_SICR_rate_Act
