@@ -10,7 +10,7 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R
-#   - 3a.PD_logit.R
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
 #   - 3b.SICR_def_1b(iii)_logit.R
 #   - 3d.Actual_backstop_rates.R
 

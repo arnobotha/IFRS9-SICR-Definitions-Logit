@@ -1,5 +1,5 @@
 # ============================== SICR-DEFINITION ANALYSIS ===============================
-# Script for comparing the SICR-models and results across various SICR-definitions.
+# Comparing the SICR-models and results across various SICR-definitions.
 # In particular, we analyse definition class 1 and compare results across (s,k)-parameters
 # ---------------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
@@ -11,11 +11,12 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R 
-#   - 3a.SICR_def_<>_logit.R | the 3a-series of scripts for definitions 1a-c, for (i)-(iv)
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
+#   - 3b.SICR_def_<>_logit.R | the 3b-series of scripts for definitions 1a-c, for (i)-(iv)
 
 # -- Inputs:
-#   - performance_measures_<> | aggregated performance measures for given SICR-definition (3a)
-#   - datSICR_smp_<> | specific SICR-sample upon which resampling scheme is applied (3a)
+#   - performance_measures_<> | aggregated performance measures for given SICR-definition (3b)
+#   - datSICR_smp_<> | specific SICR-sample upon which resampling scheme is applied (3b)
 
 # -- Outputs:
 #   - <analytics>

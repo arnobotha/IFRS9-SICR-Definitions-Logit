@@ -1,5 +1,5 @@
 # ============================== SICR-MODELLIING ===============================
-# Script for testing the representativeness of a particular resampling scheme,
+# Testing the representativeness of a particular resampling scheme,
 # using the aggregated event rate over time per sample
 # ------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
@@ -11,10 +11,11 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R
-#   - 3a.SICR_def_<>_logit.R | Any script/SICR-definition within the 3a-series of scripts
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
+#   - 3b.SICR_def_<>_logit.R | Any script/SICR-definition within the 3b-series of scripts
 
 # -- Inputs:
-#   - datSICR | enriched credit dataset (script 3a)
+#   - datSICR | enriched credit dataset (script 3b)
 
 # -- Outputs:
 #   - <analytics>

@@ -1,6 +1,7 @@
 # ============================== SICR-DEFINITION ANALYSIS ===============================
-# Script for computing and graphing Goodman variable importance across 
-# SICR-definition class 1a
+# Computing and graphing the variable importance across SICR-definition class 1a.
+# Chosen measure of variable importance: Goodman-standardised coefficients (Menard2011)
+# We also analyse the average change in odds ratio for the most importance variables
 # ---------------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
 # SCRIPT AUTHOR(S): Esmerelda Oberholzer, Dr Arno Botha
@@ -11,11 +12,12 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R 
-#   - 3a.SICR_def_<>_logit.R | the 3a-series of scripts for definitions 1a-2c, for (i)-(iv)
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
+#   - 3b.SICR_def_<>_logit.R | the 3b-series of scripts for definitions 1a-2c, for (i)-(iv)
 
 # -- Inputs:
-#   - logit_model_chosen_<> | final fitted logit-model for given SICR-definition (3a)
-#   - datSICR_smp_<> | specific SICR-sample upon which resampling scheme is applied (3a)
+#   - logit_model_chosen_<> | final fitted logit-model for given SICR-definition (3b)
+#   - datSICR_smp_<> | specific SICR-sample upon which resampling scheme is applied (3b)
 
 # -- Outputs:
 #   - <analytics>
@@ -42,70 +44,10 @@ if(!exists('logit_model_chosen')) unpack.ffdf(paste0(genPath, "logit_model_", SI
 logit_model_1a_iv <- logit_model_chosen; rm(logit_model_chosen)
 
 
-# --- b) Anova-results for interpretation
-summary(logit_model_1a_i)
-summary(logit_model_1a_ii)
-summary(logit_model_1a_iii)
-summary(logit_model_1a_iv)
-
-# - g0_Delinq: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
-vOddsChange_g0_delinq <- c(round(exp(logit_model_1a_i$coefficients["g0_Delinq"])-1, digits=1), # 19.0 times greater odds
-                           round(exp(logit_model_1a_ii$coefficients["g0_Delinq"])-1, digits=1), # 8.0 times greater odds
-                           round(exp(logit_model_1a_iii$coefficients["g0_Delinq"])-1, digits=1), # 5.2 times greater odds
-                           round(exp(logit_model_1a_iv$coefficients["g0_Delinq"])-1, digits=1)) # 3.7 times greater odds
-mean(vOddsChange_g0_delinq) # 9 times greater on average
-# Would a 1-unit increase in g_0 trigger a SICR-decision theoretically, thereby embedding the backstop of IFRS 9?
-logit_model_1a_i$data[g0_Delinq==0, mean(Prob_chosen_1a_i)] # 59%
-logit_model_1a_i$data[g0_Delinq==1, mean(Prob_chosen_1a_i)] # 2.7%
-logit_model_1a_i$data[g0_Delinq==1, mean(Pred_chosen_1a_i)] # 99.82775%
-### RESULTS: Yes, for all but the most naively-chosen cut-offs
-
-# - slc_acct_roll_ever_24_imputed: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
-vOddsChange_slc_acct_roll_ever_24_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
-                           round(exp(logit_model_1a_ii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
-                           round(exp(logit_model_1a_iii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
-                           round(exp(logit_model_1a_iv$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1)) # 0.7 times greater odds
-mean(vOddsChange_slc_acct_roll_ever_24_imputed) # 0.7 times greater on average (i.e., 70% greater odds) 
-
-# - slc_acct_arr_dir_3SAME: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
-vOddsChange_slc_acct_arr_dir_3SAME <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.7 times greater odds
-                                               round(exp(logit_model_1a_ii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
-                                               round(exp(logit_model_1a_iii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
-                                               round(exp(logit_model_1a_iv$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1)) # -0.5 times greater odds
-mean(vOddsChange_slc_acct_arr_dir_3SAME) # -0.6 times greater on average (i.e., 60% smaller odds) 
-describe(logit_model_1a_i$data$slc_acct_arr_dir_3)
-### RESULTS: most prevalent bin is "SAME" (85%), i.e., maintaining zero-arrears decreases odds, which is sensibly
-
-# - pmnt_method_grpStatement: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
-vOddsChange_pmnt_method_grpStatement <- c(round(exp(logit_model_1a_i$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.7 times greater odds
-                                               round(exp(logit_model_1a_ii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
-                                               round(exp(logit_model_1a_iii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
-                                               round(exp(logit_model_1a_iv$coefficients["pmnt_method_grpStatement"])-1, digits=1)) # 0.8 times greater odds
-mean(vOddsChange_pmnt_method_grpStatement) # 0.775 times greater on average (i.e., 78% greater odds) 
-
-
-# - slc_acct_pre_lim_perc_imputed: Effect on SICR-odds of 10%-unit increase, i.e., change in odds ratio
-vOddsChange_slc_acct_pre_lim_perc_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
-                                        round(exp(logit_model_1a_ii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
-                                        round(exp(logit_model_1a_iii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
-                                        round(exp(logit_model_1a_iv$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1)) # -0.3 times greater odds
-mean(vOddsChange_slc_acct_pre_lim_perc_imputed) # -0.3 times greater on average (i.e., 30% smaller odds) 
-
-
-# - InterestRate_Margin: Effect on SICR-odds of 1%-unit increase, i.e., change in odds ratio
-vOddsChange_InterestRate_Margin <- c(round(exp(logit_model_1a_i$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.1 times greater odds
-                                               round(exp(logit_model_1a_ii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
-                                               round(exp(logit_model_1a_iii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
-                                               round(exp(logit_model_1a_iv$coefficients["InterestRate_Margin"]*0.01)-1, digits=1)) # 0.2 times greater odds
-mean(vOddsChange_InterestRate_Margin) # 0.175 times greater on average (i.e., 30% greater odds) 
-describe(logit_model_1a_i$data$InterestRate_Margin)
 
 
 
-
-
-
-# --- 1. Variable importance
+# ------ 1. Variable importance
 
 # --- a) Calculation
 
@@ -113,6 +55,7 @@ datGraph_1a_i <- varImport_logit(logit_model_1a_i, method="stdCoef_Goodman", sig
 datGraph_1a_ii <- varImport_logit(logit_model_1a_ii, method="stdCoef_Goodman", sig_level=0.1, impPlot=F)$data
 datGraph_1a_iii <- varImport_logit(logit_model_1a_iii, method="stdCoef_Goodman", sig_level=0.1, impPlot=F)$data
 datGraph_1a_iv <- varImport_logit(logit_model_1a_iv, method="stdCoef_Goodman", sig_level=0.1, impPlot=F)$data
+
 
 
 # --- b) Graphing
@@ -231,4 +174,67 @@ ggsave(g, file=paste0(genFigPath, "VariableImportance_stdCoef_Goodman_1a_iv.png"
 
 
 
+
+# ------ 2. Average change in odds ratios for most important variables
+
+# --- Anova-results for interpretation
+summary(logit_model_1a_i)
+summary(logit_model_1a_ii)
+summary(logit_model_1a_iii)
+summary(logit_model_1a_iv)
+
+
+# --- Average change in odds ratios
+
+# - g0_Delinq: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
+vOddsChange_g0_delinq <- c(round(exp(logit_model_1a_i$coefficients["g0_Delinq"])-1, digits=1), # 19.0 times greater odds
+                           round(exp(logit_model_1a_ii$coefficients["g0_Delinq"])-1, digits=1), # 8.0 times greater odds
+                           round(exp(logit_model_1a_iii$coefficients["g0_Delinq"])-1, digits=1), # 5.2 times greater odds
+                           round(exp(logit_model_1a_iv$coefficients["g0_Delinq"])-1, digits=1)) # 3.7 times greater odds
+mean(vOddsChange_g0_delinq) # 9 times greater on average
+# Would a 1-unit increase in g_0 trigger a SICR-decision theoretically, thereby embedding the backstop of IFRS 9?
+logit_model_1a_i$data[g0_Delinq==0, mean(Prob_chosen_1a_i)] # 59%
+logit_model_1a_i$data[g0_Delinq==1, mean(Prob_chosen_1a_i)] # 2.7%
+logit_model_1a_i$data[g0_Delinq==1, mean(Pred_chosen_1a_i)] # 99.82775%
+### RESULTS: Yes, for all but the most naively-chosen cut-offs
+
+# - slc_acct_roll_ever_24_imputed: Effect on SICR-odds of 1-unit increase, i.e., change in odds ratio
+vOddsChange_slc_acct_roll_ever_24_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                                               round(exp(logit_model_1a_ii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                                               round(exp(logit_model_1a_iii$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1), # 0.7 times greater odds
+                                               round(exp(logit_model_1a_iv$coefficients["slc_acct_roll_ever_24_imputed"])-1, digits=1)) # 0.7 times greater odds
+mean(vOddsChange_slc_acct_roll_ever_24_imputed) # 0.7 times greater on average (i.e., 70% greater odds) 
+
+# - slc_acct_arr_dir_3SAME: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
+vOddsChange_slc_acct_arr_dir_3SAME <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.7 times greater odds
+                                        round(exp(logit_model_1a_ii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
+                                        round(exp(logit_model_1a_iii$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1), # -0.6 times greater odds
+                                        round(exp(logit_model_1a_iv$coefficients["slc_acct_arr_dir_3SAME"])-1, digits=1)) # -0.5 times greater odds
+mean(vOddsChange_slc_acct_arr_dir_3SAME) # -0.6 times greater on average (i.e., 60% smaller odds) 
+describe(logit_model_1a_i$data$slc_acct_arr_dir_3)
+### RESULTS: most prevalent bin is "SAME" (85%), i.e., maintaining zero-arrears decreases odds, which is sensibly
+
+# - pmnt_method_grpStatement: Effect on SICR-odds of flag relative to reference bin, i.e., change in odds ratio
+vOddsChange_pmnt_method_grpStatement <- c(round(exp(logit_model_1a_i$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.7 times greater odds
+                                          round(exp(logit_model_1a_ii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
+                                          round(exp(logit_model_1a_iii$coefficients["pmnt_method_grpStatement"])-1, digits=1), # 0.8 times greater odds
+                                          round(exp(logit_model_1a_iv$coefficients["pmnt_method_grpStatement"])-1, digits=1)) # 0.8 times greater odds
+mean(vOddsChange_pmnt_method_grpStatement) # 0.775 times greater on average (i.e., 78% greater odds) 
+
+
+# - slc_acct_pre_lim_perc_imputed: Effect on SICR-odds of 10%-unit increase, i.e., change in odds ratio
+vOddsChange_slc_acct_pre_lim_perc_imputed <- c(round(exp(logit_model_1a_i$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                               round(exp(logit_model_1a_ii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                               round(exp(logit_model_1a_iii$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1), # -0.3 times greater odds
+                                               round(exp(logit_model_1a_iv$coefficients["slc_acct_pre_lim_perc_imputed"]*0.1)-1, digits=1)) # -0.3 times greater odds
+mean(vOddsChange_slc_acct_pre_lim_perc_imputed) # -0.3 times greater on average (i.e., 30% smaller odds) 
+
+
+# - InterestRate_Margin: Effect on SICR-odds of 1%-unit increase, i.e., change in odds ratio
+vOddsChange_InterestRate_Margin <- c(round(exp(logit_model_1a_i$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.1 times greater odds
+                                     round(exp(logit_model_1a_ii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
+                                     round(exp(logit_model_1a_iii$coefficients["InterestRate_Margin"]*0.01)-1, digits=1), # 0.2 times greater odds
+                                     round(exp(logit_model_1a_iv$coefficients["InterestRate_Margin"]*0.01)-1, digits=1)) # 0.2 times greater odds
+mean(vOddsChange_InterestRate_Margin) # 0.175 times greater on average (i.e., 30% greater odds) 
+describe(logit_model_1a_i$data$InterestRate_Margin)
 

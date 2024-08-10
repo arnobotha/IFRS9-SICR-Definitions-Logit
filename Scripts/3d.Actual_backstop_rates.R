@@ -11,9 +11,10 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
 
 # -- Inputs:
-#   - creditdata_final4c | enriched credit dataset (script 2d)
+#   - creditdata_final4c | enriched credit dataset (script 3a)
 
 # -- Outputs:
 #   - dat_Backstop_smp | subsampled data with actual backstop rates

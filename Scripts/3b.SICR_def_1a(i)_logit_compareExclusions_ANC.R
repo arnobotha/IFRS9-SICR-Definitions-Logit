@@ -12,6 +12,7 @@
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R | (i)
 #   - 2d.Data_Fusion_withDefs.R | (ii)
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
 
 # -- Inputs:
 #   - datCredit_allInputs | enriched credit dataset (script 2d(i))

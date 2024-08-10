@@ -1,5 +1,5 @@
-# ============================== PD-MODELLIING ===============================
-# SICR-model for definition 1a(i) using Logistic Regression (LR)
+# =======================++======= PD-MODELLIING ===============================
+# Building a basic PD-model using Logistic Regression (LR)
 # ------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
 # SCRIPT AUTHOR(S): Esmerelda Oberholzer, Dr Arno Botha

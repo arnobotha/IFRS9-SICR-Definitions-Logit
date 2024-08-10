@@ -10,9 +10,10 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
 
 # -- Inputs:
-#   - datCredit_real | enriched credit dataset (script 2d)
+#   - datCredit_real | enriched credit dataset (script 3a)
 
 # -- Outputs:
 #   - inputs_chosen, logit_model_chosen | Chosen input variables + trained model

@@ -1,5 +1,5 @@
 # ============================== SICR-DEFINITION ANALYSIS ===============================
-# Script for collating performance measures across various SICR-definitions into a single Excel sheet 
+# Collating performance measures across various SICR-definitions into a single Excel sheet 
 # ---------------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
 # SCRIPT AUTHOR(S): Dr Arno Botha
@@ -10,10 +10,11 @@
 #   - 2b.Data_Preparation_Credit.R
 #   - 2c.Data_Enrich.R
 #   - 2d.Data_Fusion.R 
-#   - 3a.SICR_def_<>_logit.R | the 3a-series of scripts for definitions 1a-2c, for (i)-(iv)
+#   - 3a.PD_logit.R | Basic PD-model, from which PD-ratio is obtained for use in SICR-models
+#   - 3b.SICR_def_<>_logit.R | the 3b-series of scripts for definitions 1a-2c, for (i)-(iv)
 
 # -- Inputs:
-#   - performance_measures_<> | aggregated performance measures for given SICR-definition (3a)
+#   - performance_measures_<> | aggregated performance measures for given SICR-definition (3b)
 
 # -- Outputs:
 #   - PerfMeasures_All.xlsx | Microsoft Excel sheet
