@@ -923,7 +923,6 @@ alpha <- 0.05
 
 # - Confirm SICR-datasets is loaded into memory (useful step during interactive execution)
 if (!exists('datSICR_valid')) unpack.ffdf(paste0(genPath,"datSICR_valid_", SICR_label), tempPath)
-if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
 
 # - Create ROC-object | probabilities vs discrete labels
 pROC_obj_chosena <- roc(formula= SICR_target~ExpDisc, data=datSICR_valid, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
@@ -933,7 +932,7 @@ pROC_obj_chosenb <- roc(formula= SICR_target~ExpProb, data=datSICR_valid, ci.met
 # --- 6.2 Compute other performance measures
 
 # - Standard deviation
-# used to represent the stability of the SICR-definition
+# used in evaluating the dynamicity of SICR-predictions
 datSICR_smp[, SICR_predict_sd := sd(ExpProb), by=list(LoanID)]
 standard_deviation <- round(mean(datSICR_smp$SICR_predict_sd, na.rm=T)*100, digits=1)
 
