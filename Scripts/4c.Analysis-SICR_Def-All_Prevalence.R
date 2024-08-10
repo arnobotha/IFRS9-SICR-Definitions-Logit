@@ -1,8 +1,6 @@
 # ============================== SICR-DEFINITION ANALYSIS ===============================
-# Script for comparing SICR-prevalence rates across various SICR-definitions.
+# Comparing SICR-prevalence rates across various SICR-definitions.
 # In particular, we analyse definition class 1-2 and compare results across (d,s,k)-parameters
-# As an ancillary analysis, we also investigate some performance measures for a given
-# SICR-definition, as applied within the full dataset vs the subsampled dataset.
 # ---------------------------------------------------------------------------------------
 # PROJECT TITLE: Dynamic SICR-research
 # SCRIPT AUTHOR(S): Dr Arno Botha
@@ -205,52 +203,4 @@ ggplot(plot.obj,aes(x=k,y=Prevalence, group=Group)) + theme_minimal() +
 
 # - Cleanup
 rm(datSICR.aggr, datSICR.aggr.final, vMeans_s_d1, vMeans_s_d2, plot.obj, datSICR); gc()
-
-
-
-
-
-# ------ 2. Analysing performance measures for a given SICR-definition
-
-# --- Setup and data preparation
-
-# - Load the full and subsampled SICR-datasets for a given SICR-definition
-SICR_label <- "1a(ii)"
-if (!exists('datSICR')) unpack.ffdf(paste0(genPath,"datSICR_", SICR_label), tempPath)
-if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_label), tempPath)
-
-
-# --- Full sample analysis
-
-# - General statistics
-comma(datSICR[, .N]) 
-comma(length(unique(datSICR$LoanID))) 
-### RESULTS: ~521k unique loans, though we have 34m observations
-describe(datSICR[,list(Periods=.N), by=list(LoanID)]$Periods)
-### RESULTS: mean number of SICR-observations of 65.64 per account, [1,152].
-
-# - Prevalence
-datSICR[, list(SICR_Obs = sum(as.numeric(levels(SICR_target))[SICR_target], na.rm=T), k = mean(k),
-     Prevalence = mean(as.numeric(levels(SICR_target))[SICR_target], na.rm=T))]
-### RESULTS: ~2.1m SICR-events, prevalence of 6.15%
-
-
-
-# --- Subsample analysis
-
-# - General statistics
-comma(datSICR_smp[, .N]) 
-comma(length(unique(datSICR_smp$LoanID))) 
-### RESULTS: 179,261 unique loans, though we have ~250k observations in this sample (as intended)
-describe(datSICR_smp[,list(Periods=.N), by=list(LoanID)]$Periods)
-### RESULTS: mean number of SICR-observations of 1.394 per account, [1,9]. This is likely due to subsampling
-
-# - Prevalence
-datSICR_smp[, list(SICR_Obs = sum(as.numeric(levels(SICR_target))[SICR_target], na.rm=T), k = mean(k),
-               Prevalence = mean(as.numeric(levels(SICR_target))[SICR_target], na.rm=T))]
-### RESULTS: ~15k SICR-events, prevalence of 6.13%. Practically unchanged from full sample and deemed safe.
-
-
-# -- Cleanup
-rm(datSICR, datSICR_smp); gc()
 
