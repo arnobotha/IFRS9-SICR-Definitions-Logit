@@ -38,7 +38,16 @@ if (!exists('datSICR_smp')) unpack.ffdf(paste0(genPath,"datSICR_smp_", SICR_labe
 
 
 
-# ------ 1. Time graph of actual vs expected SICR-rates | PD-comparison approach
+
+# ------ 1. ROC-analysis of various u-thresholds | PD-comparison approach 
+
+
+# --- 1. ROC-analysis using pROC-package
+# See https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/
+# Mixed with https://cran.r-project.org/web/packages/ROCit/vignettes/my-vignette.html
+
+# - Set confidence level for bootstrapping the uncertainty of AUC/Gini-measures
+alpha <- 0.05
 
 # - Plot actual rate alone, as part of analysis
 port.aggr <- dat_Backstop_smp[Backstop_def==0, list(EventRate = sum(Backstop_target_event, na.rm=T)/.N, AtRisk = .N),by=list(Date)]
@@ -48,12 +57,15 @@ plot(port.aggr$EventRate, type="b")
 # short k-value (which is k=1 for this exercise)
 
 # - Investigate candidate u-thresholds by calculating the implied AUC-value of the resulting SICR-predictions
+# Also creates ROC-objects in a central list for a proper ROC-graph later
 vThresholds <- c(1,1.2,1.5,1.8,2,3)
 vAUCs <- rep(NA, length(vThresholds))
+vROCs <- vector(mode="list", length(vThresholds))
 for (i in 1:length(vThresholds)) {
   dat_Backstop_smp[, PD_Disc_candidate := ifelse(PD_ratio > vThresholds[i], 1, 0)]  
-  vAUCs[i] <- auc(dat_Backstop_smp$Backstop_target_event, dat_Backstop_smp$PD_Disc_candidate)
-  cat(paste0("AUC for threshold u=", vThresholds[i],": ", percent(vAUCs[i], accuracy=0.01),"\n"))
+  vROCs[[i]] <- roc(dat_Backstop_smp$Backstop_target_event, dat_Backstop_smp$PD_Disc_candidate, ci.method="delong", ci=T, conf.level = 1-alpha, percent=T)
+  vAUCs[i] <- vROCs[[i]]$auc
+  cat(paste0("AUC for threshold u=", vThresholds[i],": ", round(vAUCs[i], digits=2),"%\n"))
 }
 plot(vAUCs, vThresholds, type="b")
 
@@ -65,6 +77,46 @@ plot(vAUCs, vThresholds, type="b")
 # On a 200% threshold, the AUC is 52.38%, not much better than flipping a random coin\
 # On a 300% threshold, the AUC is 51.59%, not much better than flipping a random coin
 # SUMMARY: As the threshold becomes smaller, the AUC improves and vice versa
+
+
+
+# --- 2. Creating unified ROC-graph
+# - Prepare graphing parameters
+vCol <- brewer.pal(9, "Set1")[c(2,3,4,5,1,7)]
+vLType <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
+chosenFont <- "Cambria"
+
+# - Plot ROC-curves
+plot(vROCs[[1]], auc.polygon=F, max.auc.polygon=T, grid=T, 
+     col = vCol[1], auc.polygon.col=vCol[2], lty=vLType[1],
+     xlab = "False Positive Rate (%)", ylab="True Positive Rate (%)",
+     identity.col="gray25", identity=T,  legacy.axes=T, main="", yaxt='n', xaxt='n')
+for (i in 2:length(vThresholds)) plot(vROCs[[i]], add=T, col = vCol[i], lty=vLType[i])
+
+# Add y-axis
+ticks <- seq(0,100,length.out=6)
+axis(side=2,at=ticks,labels=paste0(ticks,"%"))
+axis(side=1,at=ticks,labels=paste0(rev(ticks),"%"), mgp=c(3,2,1))
+
+# Add legend: AUC-values and corresponding Gini-values
+vLabelAUC <- vector("expression",length(vThresholds))
+for (i in 1:length(vThresholds)) {
+  if (i %in% c(1)) numSpace <-3 else if (i %in% c(2,5)) numSpace <-2 else numSpace <- 1
+  vLabelAUC[[i]] <- bquote("PD-Cmp "*italic(u)==.(percent(vThresholds[i]))*". AUC: "*
+                             .(sprintf("%.1f",vROCs[[i]]$auc))*"% ± "*
+                             .(sprintf("%.2f",(vROCs[[i]]$ci[3]-vROCs[[i]]$ci[1])/2))*"%; Gini: "*
+                             .(sprintf("%.1f",vROCs[[i]]$auc*2-100))*"%")
+
+}
+legend(x=81.7, y=30, legend=vLabelAUC, col=vCol, lwd=2, horiz=F, lty=vLType, cex=0.8, 
+       y.intersp=1.2, text.width=min(strwidth(vLabelAUC)) * -0.93)
+
+# Save plot
+dev.copy(png, file=paste0(genFigPath,"ROC_PD-Comp.png"), width=1000, height=1000, res=170, family=chosenFont); dev.off()
+
+
+
+# ------ 2. Time graph of actual vs expected SICR-rates | PD-comparison approach
 
 # - Impose chosen u-thresholds
 # NOTE: Include EBA-recommended threshold u=200% + the best performing u-threshold based on the AUC
