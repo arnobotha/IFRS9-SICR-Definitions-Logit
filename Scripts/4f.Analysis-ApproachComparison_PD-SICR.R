@@ -67,7 +67,7 @@ for (i in 1:length(vThresholds)) {
   vAUCs[i] <- vROCs[[i]]$auc
   cat(paste0("AUC for threshold u=", vThresholds[i],": ", round(vAUCs[i], digits=2),"%\n"))
 }
-plot(vAUCs, vThresholds, type="b")
+plot(vThresholds, vAUCs, type="b")
 
 ### RESULTS:
 # On a 100% threshold, the AUC is 65.49%, which is the best performing 
