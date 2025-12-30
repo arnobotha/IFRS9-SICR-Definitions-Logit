@@ -2,7 +2,7 @@
 # Function definitions of various delinquency measures
 # ---------------------------------------------------------------------------------------
 # SCRIPT AUTHOR(S): Dr Arno Botha
-# VERSION: 1.4 (Aug-2021)
+# VERSION: 1.4b (Dec-2025)
 # DESCRIPTION: 
 # This script contains function definitions for constructing the g_1, g_2, and g_3 
 # delinquency measures, as well as k-based curing measurement
@@ -184,6 +184,9 @@ calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, m
     
     # - simply divide the accumulated arrears with the fixed instalment, and take the ceiling hereof as the number of payments in arrears
     mat.CD <- ceiling(mat.Arrears %*% diag(1/vec.Instal))
+    
+    # - Append row for t=0
+    mat.CD <- rbind(rep(0, n), mat.CD)
   }
   
   return (mat.CD)
