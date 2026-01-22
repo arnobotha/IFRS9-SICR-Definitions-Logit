@@ -2,7 +2,7 @@
 # Function definitions of various delinquency measures
 # ---------------------------------------------------------------------------------------
 # SCRIPT AUTHOR(S): Dr Arno Botha
-# VERSION: 1.4b (Dec-2025)
+# VERSION: 1.4c (Jan-2026)
 # DESCRIPTION: 
 # This script contains function definitions for constructing the g_1, g_2, and g_3 
 # delinquency measures, as well as k-based curing measurement
@@ -131,8 +131,8 @@ calculate.CD_t <- function(ins, rec, prev.CD=0, t=1, sc.Thres=0.9) {
 # 4) period: a scalar indicating the contractual period of all loans
 # 5) n: the number of loans within the portfolio
 # 6) method: arguments include either 'base' or 'simple':
-#    'base' -> construct the robust g_1 measure
-#    'simple' -> construct the simpler arrears / instalment ratio and take the ceiling thereof (not used)
+#    'g1' -> construct the robust g_1 measure
+#    'g0' -> construct the simpler arrears / instalment ratio and take the ceiling thereof (not used)
 calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, method="base") {
   
   # - prepare various working matrices, to be filled later
@@ -142,7 +142,7 @@ calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, m
   mat.CD.m <- mat.CD;
   
   # - two methods are implemented: 'base' (default) and 'simple'
-  if (method == "base") {
+  if (method == "g1") {
     
     # - calculate repayment ratio h_t at each time point for each loan
     mat.RepayRatio <- sapply(1:n, function(i,R,I) {
@@ -171,7 +171,7 @@ calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, m
       mat.CD[ii,] <-  pmax(0, mat.CD.d[ii,]*mat.CD.c[ii,] + (1-mat.CD.c[ii,])*(mat.CD[ii-1,] - mat.CD.m[ii,]))
     }
     
-  } else if (method == "simple") {
+  } else if (method == "g0") {
     
     # - compute the differences between instalments and receipts at each period for each loan
     mat.Diff <- mat.Instal - rbind(rep(0,n),mat.Receipt);
