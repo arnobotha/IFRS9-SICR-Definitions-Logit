@@ -174,7 +174,7 @@ calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, m
   } else if (method == "g0") {
     
     # - compute the differences between instalments and receipts at each period for each loan
-    mat.Diff <- mat.Instal - rbind(rep(0,n),mat.Receipt);
+    mat.Diff <- mat.Instal - mat.Receipt #rbind(rep(0,n),mat.Receipt);
     
     # - create the cumulative sum of these differences, i.e., the arrears balance
     mat.Arrears <- sapply(1:n, function(i,y) {
@@ -183,7 +183,7 @@ calculate.CD.forData <- function(mat.Instal, mat.Receipt, sc.Thres, period, n, m
     }, y=mat.Diff)
     
     # - simply divide the accumulated arrears with the fixed instalment, and take the ceiling hereof as the number of payments in arrears
-    mat.CD <- ceiling(mat.Arrears %*% diag(1/vec.Instal))
+    mat.CD <- pmax( ceiling(mat.Arrears / mat.Instal),0)
     
     # - Append row for t=0
     mat.CD <- rbind(rep(0, n), mat.CD)
